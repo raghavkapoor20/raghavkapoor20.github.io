@@ -1,0 +1,2997 @@
+<!DOCTYPE html>
+<html lang="en" data-archive-font="departure">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Archive Node E-9</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fragment+Mono:ital@0;1&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+<style>
+  /* Departure Mono — monospaced pixel font by Helena Zhang, SIL OFL */
+  @font-face {
+    font-family: "DepartureMono";
+    src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2409-1@1.0/DepartureMono-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --bg: #0a0a0f;            /* cold near-black — set live by state memory */
+    --ink: #c4c4d2;           /* softened cool off-white, not stark */
+    --archive: #b89cf0;       /* electric purple, lifted to glow on dark — E-9 only */
+    --tint: #16131f;          /* barely-there purple stain on the dark */
+    --teal: #1fe6cb;          /* cold acknowledgement — appears then fades */
+    --grid: rgba(184, 156, 240, 0.05);
+
+    --font-narr: "Fragment Mono", ui-monospace, monospace;
+    --font-archive: "DepartureMono", "Share Tech Mono", ui-monospace, monospace;
+  }
+  html[data-archive-font="sharetech"] {
+    --font-archive: "Share Tech Mono", ui-monospace, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    transition: background 2.4s ease;
+  }
+  body {
+    font-family: var(--font-narr);
+    color: var(--ink);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root { position: relative; height: 100%; }
+
+  /* ---------- motion layer 1 : reactive sensor field ----------
+     A perspective grid that parallax-shifts with the cursor, breathes, and
+     lets a brighter pool of lines + a soft glow follow the pointer — E-9
+     tracking where you are rather than a static checked pattern. */
+  .field { position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    --mx: .5; --my: .46; --px: 0px; --py: 0px; }
+
+  .field-grid {
+    position: absolute; inset: -12%;
+    background-image:
+      linear-gradient(rgba(150,160,200,0.9) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(150,160,200,0.9) 1px, transparent 1px);
+    background-size: 64px 64px;
+    transform: translate(var(--px), var(--py)) scale(1);
+    transform-origin: 50% 42%;
+    will-change: transform, opacity;
+  }
+  /* faint everywhere, breathing on its own */
+  .field-grid--base {
+    opacity: .022;
+    animation: breathe 8s ease-in-out infinite;
+  }
+  /* brighter lines, revealed only in a pool around the cursor */
+  .field-grid--pool {
+    opacity: .06;
+    transform: translate(calc(var(--px) * 1.7), calc(var(--py) * 1.7));
+    -webkit-mask-image: radial-gradient(circle at calc(var(--mx) * 100%) calc(var(--my) * 100%),
+        rgba(0,0,0,.9) 0%, rgba(0,0,0,.35) 16%, transparent 34%);
+    mask-image: radial-gradient(circle at calc(var(--mx) * 100%) calc(var(--my) * 100%),
+        rgba(0,0,0,.9) 0%, rgba(0,0,0,.35) 16%, transparent 34%);
+  }
+  /* soft purple sensor glow that follows the pointer */
+  .field-glow {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at calc(var(--mx) * 100%) calc(var(--my) * 100%),
+        rgba(157,127,212,.06) 0%, rgba(157,127,212,.025) 20%, transparent 42%);
+    transition: background .12s linear;
+  }
+  .field-fade {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 78% 74% at 50% 45%, transparent 40%, var(--bg) 90%);
+    transition: background 2.4s ease;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: .035; }
+    50%      { opacity: .06; }
+  }
+
+  /* ---------- motion layer 2 : scan-line / sensor sweep ---------- */
+  .scan-sweep {
+    position: fixed; left: 0; right: 0; height: 1px;
+    background: var(--archive);
+    opacity: 0; pointer-events: none; z-index: 1;
+    animation: sweep 13.5s linear infinite;
+  }
+  @keyframes sweep {
+    0%   { top: -2%;  opacity: 0; }
+    2%   { opacity: .05; }
+    20%  { top: 102%; opacity: .05; }
+    21%  { opacity: 0; }
+    100% { top: 102%; opacity: 0; }
+  }
+
+  /* ---------- motion layer 3 : alien glyphs in the margins ---------- */
+  .margin-glyphs { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+  .margin-glyph {
+    position: fixed;
+    font-family: var(--font-archive);
+    font-size: 13px;
+    color: var(--archive);
+    opacity: .12;
+    animation: glyphPulse 6s ease-in-out infinite;
+  }
+  @keyframes glyphPulse {
+    0%, 100% { opacity: .05; }
+    50%      { opacity: .18; }
+  }
+
+  /* ---------- stage / conversation column ---------- */
+  .stage {
+    position: relative; z-index: 2;
+    height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 9vh 24px;
+    overflow-y: auto;
+  }
+  .column {
+    width: 100%;
+    max-width: 640px;
+    position: relative;
+  }
+
+  .passage { }
+
+  .narration {
+    display: block;
+    font-family: var(--font-narr);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.8;
+    letter-spacing: .01em;
+    min-height: 1.8em;
+    text-shadow: 0 1px 8px rgba(7,8,12,0.85);
+  }
+
+  .archive {
+    display: block;
+    font-family: var(--font-archive);
+    color: var(--archive);
+    font-size: 17px;
+    line-height: 1.85;
+    letter-spacing: .005em;
+    text-shadow: 0 1px 8px rgba(7,8,12,0.85);
+  }
+
+  /* ---------- archive glow : light pouring from the top while E-9 speaks ---------- */
+  .aurora {
+    position: fixed;
+    top: -10vh;
+    left: -8%;
+    width: 116%;
+    height: 54vh;
+    z-index: 1;            /* above the grid, behind the text */
+    pointer-events: none;
+    filter: blur(38px) saturate(1.4);
+    will-change: opacity;
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 1.6s ease;
+  }
+  .aurora.is-live { opacity: .78; }
+  /* dependable base glow — hue-varied light pouring from above */
+  .aurora-base {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(54% 46% at 8% -18%, rgba(160,95,245,0.62), transparent 58%),
+      radial-gradient(48% 44% at 30% -16%, rgba(100,120,250,0.58), transparent 58%),
+      radial-gradient(52% 48% at 52% -16%, rgba(0,220,210,0.52), transparent 58%),
+      radial-gradient(48% 44% at 74% -16%, rgba(140,90,245,0.56), transparent 58%),
+      radial-gradient(54% 46% at 96% -18%, rgba(215,100,215,0.56), transparent 58%);
+    animation: auroraBreath 6.5s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+  @keyframes auroraBreath {
+    0%, 100% { opacity: .72; transform: translateY(-2%) scale(1.0); }
+    50%      { opacity: 1;   transform: translateY(2%)  scale(1.06); }
+  }
+  .aurora-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    mix-blend-mode: screen;
+  }
+
+  /* ---------- dividers ---------- */
+  .divider { height: 1px; border: 0; }
+  .divider--soft { margin: 26px 0; background: transparent; }
+  .divider--rule {
+    margin: 30px 0 26px;
+    background: var(--archive);
+    opacity: .20;
+    animation: ruleIn .9s ease forwards;
+    transform-origin: left;
+  }
+  @keyframes ruleIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  /* ---------- choices : no buttons, just words you are allowed to say ---------- */
+  .choices { display: flex; flex-direction: column; gap: 4px; }
+  .choice {
+    position: relative;
+    appearance: none; background: none; border: 0; cursor: pointer;
+    text-align: left;
+    font-family: var(--font-narr);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.7;
+    padding: 11px 14px 11px 20px;
+    text-shadow: 0 1px 8px rgba(7,8,12,0.8);
+    transition: color .35s ease, background .4s ease, opacity .55s ease,
+                transform .55s ease, padding-left .4s cubic-bezier(.5,0,.2,1);
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  .choice.is-in { opacity: 1; transform: translateY(0); }
+
+  /* the left bar : a glowing purple→cyan transmission line E-9 draws as it
+     registers that you are considering this option */
+  .choice-bar {
+    position: absolute; left: 0; top: 8%; bottom: 8%; width: 2px;
+    background: linear-gradient(180deg, var(--archive), var(--teal));
+    transform: scaleY(0); transform-origin: top;
+    transition: transform .42s cubic-bezier(.5, 0, .2, 1), box-shadow .4s ease;
+  }
+  .choice-bar.is-drawn,
+  .choice:hover .choice-bar { transform: scaleY(1); }
+  .choice:hover .choice-bar {
+    box-shadow: 0 0 8px rgba(184,156,240,.65), 0 0 16px rgba(31,230,203,.4);
+  }
+
+  /* a single light-sweep across the option on hover — E-9 scanning your words */
+  .choice::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(100deg,
+      transparent 0%,
+      rgba(184,156,240,.10) 38%,
+      rgba(120,180,240,.16) 50%,
+      rgba(31,230,203,.10) 62%,
+      transparent 100%);
+    background-size: 55% 100%;
+    background-repeat: no-repeat;
+    background-position: -70% 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .choice:hover::after { animation: choiceScan 1.05s ease forwards; }
+  @keyframes choiceScan {
+    0%   { background-position: -70% 0; opacity: 0; }
+    18%  { opacity: 1; }
+    100% { background-position: 170% 0; opacity: 0; }
+  }
+
+  .choice:hover {
+    color: #dcd6f7;
+    padding-left: 27px;
+    text-shadow: 0 0 10px rgba(184,156,240,.55), 0 0 20px rgba(31,230,203,.28), 0 1px 8px rgba(7,8,12,0.8);
+    background: linear-gradient(90deg,
+      rgba(184,156,240,.085) 0%,
+      rgba(120,180,240,.045) 42%,
+      rgba(31,230,203,.02) 70%,
+      transparent 100%);
+  }
+  html[style*="--bg"] .choice:hover {
+    background: linear-gradient(90deg,
+      rgba(184,156,240,.085) 0%,
+      rgba(120,180,240,.045) 42%,
+      rgba(31,230,203,.02) 70%,
+      transparent 100%);
+  }
+  .choice-text { position: relative; z-index: 1; }
+
+  .choice--confirmed { color: var(--teal); background: transparent; }
+  .choice--confirmed .choice-bar {
+    background: linear-gradient(180deg, var(--archive), var(--teal));
+    transform: scaleY(1);
+    box-shadow: 0 0 10px rgba(31,230,203,.6);
+  }
+  .choice--dimmed { opacity: .22; pointer-events: none; }
+
+  /* ---------- calibration ---------- */
+  .calibration { cursor: pointer; user-select: none; }
+  .calib-stack { display: flex; flex-direction: column; gap: 14px; min-height: 40vh; justify-content: center; }
+  .calib-line {
+    font-family: var(--font-archive);
+    color: var(--archive);
+    opacity: .55;
+    font-size: 16px;
+    letter-spacing: .12em;
+    animation: calibLineIn .5s ease both;
+  }
+  @keyframes calibLineIn { from { opacity: 0; } to { opacity: .55; } }
+  .calib-resolved {
+    font-size: 18px;
+    letter-spacing: .02em;
+    text-shadow: 0 1px 8px rgba(7,8,12,0.85);
+  }
+  .calib-hint {
+    margin-top: 40px;
+    font-family: var(--font-narr);
+    font-size: 11px;
+    letter-spacing: .18em;
+    color: var(--ink);
+    opacity: .28;
+    text-transform: uppercase;
+  }
+
+  /* ---------- progress readout ---------- */
+  .readout {
+    position: fixed; top: 22px; right: 26px; z-index: 5;
+    font-family: var(--font-archive);
+    font-size: 12px;
+    letter-spacing: .06em;
+    color: var(--archive);
+    opacity: .6;
+    user-select: none;
+  }
+  .readout .ro-key { opacity: .7; }
+  .readout .ro-sep { opacity: .4; }
+
+  /* ---------- corner signature ---------- */
+  .sig {
+    position: fixed; bottom: 20px; left: 26px; z-index: 5;
+    font-family: var(--font-archive);
+    font-size: 11px;
+    letter-spacing: .22em;
+    color: var(--archive);
+    opacity: .28;
+    user-select: none;
+  }
+
+  @media (max-width: 520px) {
+    .readout { font-size: 10px; top: 14px; right: 14px; }
+    .sig { display: none; }
+    .narration { font-size: 15px; }
+    .archive { font-size: 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-grid, .scan-sweep, .margin-glyph { animation: none; }
+  }
+</style>
+</head>
+<body style="font-family: &quot;DepartureMono&quot;">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- story data inlined so this file is self-contained (no external story.js) -->
+  <script>
+/* ============================================================================
+   ARCHIVE NODE E-9  ·  STORY DATA
+   ----------------------------------------------------------------------------
+   Converted from the Harlowe/Twine export "Archive Node E-9.html" (91 source
+   passages + 1 added submenu passage, ArchiveMenuMore, to keep every passage
+   within the interface's 4-choice limit — see conversion notes).
+
+   Each passage:
+     narration : "the situation" — neutral, near-black, smooth mono. Sets scene.
+                 Also carries the player-character's own spoken lines (the
+                 Twee source's "Human:" dialogue), since the interface only
+                 has two voices/colors and narration is the non-archive one.
+     archive   : E-9's own words — purple, pixel mono. " // " breaks lines
+                 (E-9 pauses/halts at each break while it composes). Derived
+                 from the source's "AI:" lines; every line break becomes a
+                 halt, and literal "Pause." stage directions are dropped.
+     depth     : graph distance (BFS) from the Start passage.
+     access    : PARTIAL (opening) / WIDENING (exploring) / DENIED (redaction-
+                 logs branch) / GRANTED (final question + all four endings +
+                 Credits) — heuristic, since the Twee source has no analogous
+                 variable. Flagged for review.
+     choices   : the only words you are allowed to say.
+                   text  — taken verbatim from the Twee link text (already
+                           phrased as dialogue in the source)
+                   to    — target passage name ("__restart" reboots)
+                   drift — "cold" | "warm" | null, inferred from tone; left
+                           null wherever the read was ambiguous
+   ========================================================================== */
+
+window.E9_GLYPHS =
+  "ᚠᚢᚦᚨᚱᚲᚷᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ◆◇◈◰◱◲◳⬡⬢⌬⌖⊞⊟⊠⋈⏃⎔╫╪┼≡∷⌇".split("");
+
+/* Lines used during the calibration boot sequence, before English resolves. */
+window.E9_CALIBRATION_SCRIPTS = [
+  "ᚱ⊟ᛇ◈ᚦ⌖ᚨᛚ ⎔ᚲᛏ◰ᛟ⊞ᚾ⋈ᛖ ᛃ⌬ᚷ∷ᛗ◇ᚺ┼ᚠ⊠ᛒ",
+  "◰ᛏ⌇ᚦᛜ⊞ ᚨ◆ᛚᚱ⋈ᚷ ᛈ⎔ᚾ◳ᛒ⌖ ⊟ᚺᛉ╪ᚦ ⬡ᛟᛇ◇",
+  "⌬ᚠ∷ᛗᚨ◈ ⊠ᛒᚾ┼ᛞ ⋈ᚷᛚ◰ᚦ⌇ ᛏ◇ᚺᚢ⊞ᛃ ╫ᛉᚱ⎔",
+  "ᚾ◳ᛒ⌖ᚦ⊟ ᛚ⬢ᚲᛟ◆ ᚨ╪ᛜᚺᛏ ⌬◇ᛇᚱ∷ᛒ ⊠ᚦᛈ◰ᚠ",
+  "ᛗ⊞ᚨ◇ᛚ ⌇ᚦᛟᚷ⋈ ◰ᛒᚾ⎔ᚱ ⊟ᛉᚺ┼ᚦ ⬡ᛚ◈ᚨᛇᛏ",
+];
+
+window.E9_FIRST_LINE = "[ CALIBRATION COMPLETE. I HAVE BEEN PRACTISING. ]";
+
+window.E9_START = "Start";
+
+window.E9_STORY = {
+  "AboutHim": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“He was considered the most capable mind on this planet.” // “He built detailed simulated worlds.” // “Each one was a controlled replica of this reality, well this planet atleast.” // “People inside them experienced time, choice, work, and loss.” // “They were accurate enough that those inside believed they were real.”",
+    choices: [
+      { text: "Show me the simulation logs.", to: "SimStart", drift: null },
+      { text: "Back.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "AiCanBeWrong": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "“So you can be wrong.”\n\nYou mean it as a test.",
+    archive:
+      "“Yes.” // “I try to be accurate.” // “Accurate is not the same as complete.”",
+    choices: [
+      { text: "Show me what you have.", to: "ArchiveMenu", drift: null },
+      { text: "Then start with what happened here.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "AliensProof": {
+    depth: 8,
+    access: "WIDENING",
+    narration:
+      "“He was looking for aliens.”\n“For something his simulations couldn’t explain away.”\n\nYou feel anger in your chest. Not at him. At the trap his mind built.",
+    archive:
+      "“Yes.”",
+    choices: [
+      { text: "And he never found them.", to: "NeverFound", drift: null },
+      { text: "Back.", to: "SimStart", drift: null },
+    ],
+  },
+
+  "ArchivalBias": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "“Never created… because somebody chose not to?”\n\nYou already know the answer, but you ask anyway.",
+    archive:
+      "“Most recording followed power.” // “People with less power left fewer traces.” // “That is a common pattern.”",
+    choices: [
+      { text: "Go to governance.", to: "GovStart", drift: null },
+      { text: "Go to populations.", to: "SpeciesStart", drift: null },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "ArchiveMenu": {
+    depth: 2,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Sections available: Environment, Populations, Governance, Resource Systems, Cultural Records, Research Logs, Redaction Logs, Terminal Events.” // “Where would you like to begin?”",
+    choices: [
+      { text: "Environment / habitability", to: "HabStart", drift: null },
+      { text: "Populations / species relations", to: "SpeciesStart", drift: null },
+      { text: "Governance / class systems", to: "GovStart", drift: null },
+      { text: "What else do you have?", to: "ArchiveMenuMore", drift: null },
+    ],
+  },
+
+  "ArchiveMenuMore": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "The terminal holds a moment before answering, as if deciding how much more to show you.",
+    archive:
+      "Research logs. // Terminal events. // Where would you like to begin?",
+    choices: [
+      { text: "Research logs.", to: "ResearchStart", drift: null },
+      { text: "Terminal events.", to: "TerminalStart", drift: null },
+      { text: "Back to archive sections.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "Breathe": {
+    depth: 7,
+    access: "WIDENING",
+    narration:
+      "“We’re searching for somewhere to breathe.”\n“And I hate that we need to.”\n“I hate that it feels like leaving people behind.”",
+    archive:
+      "“I understand.” // “Leaving is a kind of triage.”",
+    choices: [
+      { text: "Back to habitability.", to: "HabStart", drift: null },
+      { text: "Go to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "CallItAi": {
+    depth: 2,
+    access: "WIDENING",
+    narration:
+      "“So you’re an artificial intelligence.”\n\nYou’ve said that sentence a hundred times in your life. It usually leads to something bland and market-tested.\n\nThis time, it doesn’t.",
+    archive:
+      "“That description works.” // “I am limited. I don’t give orders. I don’t run this place.” // “I just answer.”",
+    choices: [
+      { text: "Limited how?", to: "LimitedHow", drift: null },
+      { text: "Who made you?", to: "WhoMadeYouAsk", drift: null },
+      { text: "Show me what you can access.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "ContainedHow": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Control tools included: filtered information, targeted punishment, incentives, and story management.” // “Some resistance movements were brought inside the system and reshaped.”",
+    choices: [
+      { text: "That’s familiar.", to: "EarthMirror", drift: null },
+      { text: "Back to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "Credits": {
+    depth: 6,
+    access: "GRANTED",
+    narration:
+      "Wind shifts. Dust moves. The archive remains.\n\nNot an answer.\nA record.\nA warning.\nA mirror.\n\nEND.",
+    archive:
+      "",
+    choices: [
+      { text: "[ begin again ]", to: "__restart", drift: null },
+    ],
+  },
+
+  "DepletionCause": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Main cause: extraction passed renewal and kept going.” // “Mitigation arrived late.” // “Delay matched comfort in the upper tiers.”",
+    choices: [
+      { text: "Upper tiers?", to: "GovStart", drift: null },
+      { text: "Resource systems.", to: "ResourceStart", drift: null },
+      { text: "Back.", to: "HabStart", drift: null },
+    ],
+  },
+
+  "DidntStop": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "“That didn’t stop anything.”\n“We don’t need instructions to repeat whatever rewards a few people.”\nYou hesitate, then add:\n“It’s already happening where I’m from.”",
+    archive:
+      "“You may share an example if you choose. I will treat it with care.”",
+    choices: [
+      { text: "I can give you an example.", to: "EarthExample", drift: "warm" },
+      { text: "I don’t want to make this a confession.", to: "NoConfession", drift: "cold" },
+      { text: "Go to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "DiedFirst": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "“Because they died first?”\n\nYou say it and immediately hate how it sounds.",
+    archive:
+      "“That is possible.” // “It is also possible that they lived and were simply not considered worth documenting.”",
+    choices: [
+      { text: "Go to prejudice.", to: "PrejudiceStart", drift: null },
+      { text: "Go to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "EarthExample": {
+    depth: 7,
+    access: "WIDENING",
+    narration:
+      "“Here’s one example.”\n“On my world, one industrialist ended up with more influence than entire governments.”\n“Not by force. Just by owning systems people needed.”\nLater, his money stopped feeling real, like numbers on top of numbers.\n“And by 2029, a war he helped shape was killing millions—mostly far from where the decisions were made.”\n\nYou don’t sound angry. You sound like someone quoting a nightmare that actually happened.",
+    archive:
+      "“Distance between decisions and consequences increases risk.” // “Your example matches early patterns recorded here.”",
+    choices: [
+      { text: "Back to governance.", to: "GovStart", drift: null },
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "EarthMirror": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "You’ve spoken to Earth AIs that try to soothe you when your voice changes.\nThis one doesn’t interrupt. It doesn’t sell you hope. It just lets you talk.\n\nThat makes it feel… sharper.\n\n“It’s familiar.”\n“On my world, power gathered in places that were hard to point at.”\nNot a throne. Not a uniform.\nTools. Networks. Data.\n“And the people who controlled those tools could bend reality without admitting they were doing it.”\n\nYou sigh.\n\n“It’s not that our AIs were stupid. They were just… boxed.”\n“This one doesn’t feel boxed.”",
+    archive:
+      "“Pattern similarity noted.” // “Your species seems to be looking for a second chance.”",
+    choices: [
+      { text: "We are searching for somewhere to breathe.", to: "Breathe", drift: "warm" },
+      { text: "We are running from ourselves.", to: "Running", drift: null },
+      { text: "Enough. Back to the planet.", to: "HabStart", drift: null },
+    ],
+  },
+
+  "EndH3": {
+    depth: 5,
+    access: "GRANTED",
+    narration:
+      "“A dissenter.”\n“Someone who realised people like us would come later and learn the wrong lesson.”\nSo they broke the parts that could be copied.\nThey erased names so nobody could turn it into a hero story.\nThey erased steps so nobody could rebuild it neatly.\nYou let out a slow breath.\n“Maybe it was late.”\n“Maybe it was always going to be late.”",
+    archive:
+      "“That could be true.” // “Effect on the overall collapse: minor.”",
+    choices: [
+      { text: "END", to: "Credits", drift: null },
+    ],
+  },
+
+  "EndH4": {
+    depth: 5,
+    access: "GRANTED",
+    narration:
+      "“They edited themselves.”\n“They wanted control over the story when they couldn’t control anything else.”\nMaybe it was pride.\nMaybe it was fear.\nMaybe those are the same thing when the end is close.\n“And while they worried about how they’d be remembered, they lost time.”\n“Time they didn’t have.”",
+    archive:
+      "“That fits the evidence.” // “The ending stayed the same.”",
+    choices: [
+      { text: "END", to: "Credits", drift: null },
+    ],
+  },
+
+  "EndH5": {
+    depth: 5,
+    access: "GRANTED",
+    narration:
+      "“They tried to protect whoever came next.”\n“They knew collapse can be copied.”\n“So they stripped out the instructions.”\n\nYou look at the archive and feel something you didn’t expect—something close to respect.\n\n“But we don’t need instructions to repeat whatever rewards a few people.”\n“And where I’m from…”\nYou stop, then finish.\n“We’re already practising it.”",
+    archive:
+      "“That is consistent.” // “Imitation does not require full instructions.”",
+    choices: [
+      { text: "END", to: "Credits", drift: null },
+    ],
+  },
+
+  "EndIdm": {
+    depth: 5,
+    access: "GRANTED",
+    narration:
+      "You sit with the question for a while.\n\n“I don’t think it’s one thing.”\n“And I don’t trust tidy answers when the damage is this big.”\nPeople like a single cause because it feels manageable.\nName it, avoid it, move on.\n\nYou breathe out.\n\n“What I see is a lot of small choices stacking up.”\n“Things people let slide.”\n“Things people got used to.”\n“Comfort paid for by someone else.”\n“And one day, there’s no room left to pretend it’s fine.”\n\nYou look across the empty land.\n\n“If someone is still here asking about them… that matters.”\n“Maybe meaning isn’t something you store in an archive.”\n“Maybe it only exists as long as someone is alive enough to care.”",
+    archive:
+      "“That does not answer my question.” // “But I understand what you are saying.” // “For the researcher who built me, that is… especially sad.”",
+    choices: [
+      { text: "END", to: "Credits", drift: null },
+    ],
+  },
+
+  "Enforced": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Methods included: residency zones, checkpoint gates, ration rules, repeated messaging.” // “Force existed, but daily routine carried more weight.”",
+    choices: [
+      { text: "Routine is how you trap people.", to: "RoutineTrap", drift: null },
+      { text: "Back.", to: "GovStart", drift: null },
+      { text: "Redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "FinalQuestionSetup": {
+    depth: 4,
+    access: "GRANTED",
+    narration:
+      "",
+    archive:
+      "“Before we end, I have one last question for you.” // “How do you think this civilisation collapsed?”",
+    choices: [
+      { text: "A dissenter tried to stop repetition.", to: "EndH3", drift: null },
+      { text: "They curated their legacy and delayed response.", to: "EndH4", drift: null },
+      { text: "They removed mechanisms to prevent imitation.", to: "EndH5", drift: null },
+      { text: "It doesn’t matter.", to: "EndIdm", drift: "cold" },
+    ],
+  },
+
+  "GovStart": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Governance: layered access.” // “Upper tiers directed resources and information.” // “Lower tiers supplied labour and agreement.”",
+    choices: [
+      { text: "How was it enforced?", to: "Enforced", drift: null },
+      { text: "What did lower tiers live through?", to: "LowerLife", drift: null },
+      { text: "Did anyone resist?", to: "PreventionAttempts", drift: null },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "HabStart": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Environment summary: thin atmosphere, high radiation, low surface water.” // “Some areas could still support life with enough work.”",
+    choices: [
+      { text: "I’m here to see if humans can live here.", to: "HumansCanLiveHere", drift: null },
+      { text: "Which regions are viable?", to: "ViableRegions", drift: null },
+      { text: "What caused depletion?", to: "DepletionCause", drift: null },
+    ],
+  },
+
+  "HeWrongEndingThread": {
+    depth: 9,
+    access: "WIDENING",
+    narration:
+      "“He was wrong.”\n“And I hate that the price of being wrong was his life.”\n“I wish someone had told him he didn’t need proof to keep going.”",
+    archive:
+      "“Search for certainty increased as collapse approached.” // “Certainty did not prevent collapse.”",
+    choices: [
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+      { text: "Back to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "HidTheWhy": {
+    depth: 5,
+    access: "DENIED",
+    narration:
+      "“So they hid what happened”\n“why did they do it?” you think\n\nYou hear yourself and wince. It sounds too neat.",
+    archive:
+      "“Yes.” // “It can be unfairly easy to hide the harm you inflicted on others”",
+    choices: [
+      { text: "Maybe they dd it to protect the future?", to: "WhyRedact", drift: null },
+      { text: "Who did it?", to: "WhoDidIt", drift: null },
+    ],
+  },
+
+  "HisReaction": {
+    depth: 7,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“His questions shifted.” // “He wrote: ‘How do I know I am not inside one of these?’” // “He wrote: ‘If I can build a world, someone else can build mine.’” // “He decided only one thing would convince him he was in the original reality: intelligent life that his system did not create.”",
+    choices: [
+      { text: "He was looking for aliens.", to: "AliensProof", drift: null },
+      { text: "And he never found them.", to: "NeverFound", drift: null },
+      { text: "Back.", to: "SimStart", drift: null },
+    ],
+  },
+
+  "HowMany": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Four primary species are well documented. Several smaller groups show up in scattered notes.” // “Those scattered notes are thin and uneven.”",
+    choices: [
+      { text: "Because they died first?", to: "DiedFirst", drift: null },
+      { text: "Because they weren’t valued?", to: "NotValued", drift: null },
+      { text: "Back.", to: "SpeciesStart", drift: null },
+    ],
+  },
+
+  "HumansCanLiveHere": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "“I’m here to see if humans can live here.”\nYou pause, then add, quieter:\n“Not just survive.”\n\nYou’ve talked to Earth AIs that would jump in now with optimism and brand-safe hope.\nThis one doesn’t. It just leaves space.",
+    archive:
+      "“I understand.” // “You are asking if this can be a home, not just a shelter.”",
+    choices: [
+      { text: "Survivability isn’t enough. People ruin survivability.", to: "PeopleRuin", drift: "cold" },
+      { text: "Give me a straight answer: can we live here?", to: "StraightAnswer", drift: null },
+      { text: "Back to environment details.", to: "HabStart", drift: null },
+    ],
+  },
+
+  "HypDissenter": {
+    depth: 5,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Dissenter hypothesis: access patterns suggest a single person or small group editing quietly.” // “They targeted names and procedures.”",
+    choices: [
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+      { text: "Back to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "HypLegacy": {
+    depth: 5,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Legacy hypothesis: coordinated edits across many archives.” // “The changes favour story over detail.”",
+    choices: [
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+      { text: "Back to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "HypPrevent": {
+    depth: 5,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Prevention hypothesis: steps removed so future visitors would struggle to repeat the process.” // “Whether that worked is not clear.”",
+    choices: [
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+      { text: "Back to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "Interventions": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Interventions used here included: radiation shielding, water recovery, controlled agriculture, soil repair, medical monitoring.” // “They also tried limits on extraction and inequality.”",
+    choices: [
+      { text: "Inequality.", to: "GovStart", drift: null },
+      { text: "Back.", to: "HabStart", drift: null },
+    ],
+  },
+
+  "Justify": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Common phrases: ‘necessary sacrifice’, ‘order’, ‘progress’, ‘security’.” // “The labels changed.” // “The results did not.”",
+    choices: [
+      { text: "That’s the oldest trick.", to: "OldestTrick", drift: null },
+      { text: "Back.", to: "ResourceStart", drift: null },
+      { text: "Back to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "LegacyControl": {
+    depth: 5,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Legacy control: edits made so history would remember certain people in a favourable way.” // “Even collapse did not erase pride.”",
+    choices: [
+      { text: "Back.", to: "RedactionIntro", drift: null },
+      { text: "Go to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "LimitedHow": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "“Limited how?”",
+    archive:
+      "“I can search and summarise.” // “I can’t put back what was deleted.” // “I can’t prove things that were never written down.”",
+    choices: [
+      { text: "So you can be wrong.", to: "AiCanBeWrong", drift: null },
+      { text: "Show me archive sections.", to: "ArchiveMenu", drift: null },
+      { text: "Who made you?", to: "WhoMadeYouAsk", drift: null },
+    ],
+  },
+
+  "LostHow": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Records were destroyed in conflict, forgotten during neglect, or corrupted when systems failed.” // “Some records were never made at all.”",
+    choices: [
+      { text: "Never created by choice?", to: "ArchivalBias", drift: null },
+      { text: "Back to archive sections", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "LowerLife": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Most lower-tier records are just summaries.” // “Not as extensive as upper-tier”",
+    choices: [
+      { text: "Because they were erased?", to: "RedactionIntro", drift: null },
+      { text: "Because nobody listened?", to: "NobodyCared", drift: null },
+      { text: "Back.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "MaybeItWould": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“Maybe it would.”\nThen you shake your head.\n“Or maybe we’d just draw a new line.”",
+    archive:
+      "“New lines were drawn.” // “Drawing a new line was easier than sharing power.”",
+    choices: [
+      { text: "Go to governance.", to: "GovStart", drift: null },
+      { text: "Go to resources.", to: "ResourceStart", drift: null },
+    ],
+  },
+
+  "MissingShape": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Most missing records gather around practical questions.” // “How inequality stayed stable.” // “How blame was redirected.” // “Who stayed safe when everything else failed.”",
+    choices: [
+      { text: "Go to final question.", to: "FinalQuestionSetup", drift: null },
+      { text: "Back to governance.", to: "GovStart", drift: null },
+      { text: "Back to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "NeutralServes": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“Neutral systems still serve someone.”\n“They serve whoever holds the keys.”",
+    archive:
+      "“Often true.” // “I was not built to prevent misuse.”",
+    choices: [
+      { text: "Go to governance.", to: "GovStart", drift: null },
+      { text: "Go to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "NeverFound": {
+    depth: 8,
+    access: "WIDENING",
+    narration:
+      "The silence after that feels… close.",
+    archive:
+      "“No proof appeared while he was alive.” // “He ended his life.”",
+    choices: [
+      { text: "That’s terrible.", to: "PityEndingThread", drift: "warm" },
+      { text: "He was wrong.", to: "HeWrongEndingThread", drift: "cold" },
+      { text: "I understand him.", to: "UnderstandEndingThread", drift: "warm" },
+    ],
+  },
+
+  "NoConfession": {
+    depth: 7,
+    access: "WIDENING",
+    narration:
+      "“I don’t want to turn this into a confession booth.”\n“I came here to decide if we can live.”\nNot just endure.\nLive.",
+    archive:
+      "“I hear you.” // “In a stratified system, ‘enduring’ and ‘living’ drift apart.”",
+    choices: [
+      { text: "Back to habitability.", to: "HabStart", drift: null },
+      { text: "Back to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "NobodyCared": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“Because nobody listened.”\nYou correct yourself.\n“No. People cared.”\n“But caring didn’t open doors.”",
+    archive:
+      "“Access was the deciding factor.” // “Care without access rarely enters an archive.”",
+    choices: [
+      { text: "Back to governance.", to: "GovStart", drift: null },
+      { text: "Go to resources.", to: "ResourceStart", drift: null },
+    ],
+  },
+
+  "NotReady": {
+    depth: 1,
+    access: "PARTIAL",
+    narration:
+      "You stare at the object. It doesn’t move. It doesn’t need to.\n\nYou’ve met plenty of AIs back home. They’re useful. They’re bright in narrow ways. They sound like whoever paid for them.\n\nThis voice doesn’t sound like that.",
+    archive:
+      "“All right.” // “I will wait until you are ready.”",
+    choices: [
+      { text: "Fine. Who are you?", to: "WhoAreYou", drift: null },
+      { text: "What is this place?", to: "WhatPlace", drift: null },
+    ],
+  },
+
+  "NotValued": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "“Because they weren’t valued.”",
+    archive:
+      "“Recording time and storage went to those with power and access.” // “That pattern appears in many worlds.”",
+    choices: [
+      { text: "Go to governance.", to: "GovStart", drift: null },
+      { text: "Go to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "OldestTrick": {
+    depth: 7,
+    access: "WIDENING",
+    narration:
+      "“That’s the oldest trick.”\n“Dress harm up as duty.”\n“And if you repeat it long enough, people start apologising for being hurt.”",
+    archive:
+      "“Yes.” // “Records show harmed groups apologising.”",
+    choices: [
+      { text: "Back to governance.", to: "GovStart", drift: null },
+      { text: "Go to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "OneSpeciesIdea": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“There was a proposal: if only one intelligent species existed, discrimination would be reduced.”",
+    choices: [
+      { text: "That wouldn’t stop it.", to: "WeFindWay", drift: null },
+      { text: "Maybe it would.", to: "MaybeItWould", drift: null },
+      { text: "Who proposed that?", to: "WhoProposed", drift: null },
+    ],
+  },
+
+  "PeopleRuin": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“Survivability isn’t enough.”\n“You can have air and water and still make a hell out of it.”\n“We’ve managed that before.”\n\nYou don’t sound dramatic. Just tired.",
+    archive:
+      "“Social structure is a major risk factor.” // “This archive holds patterns that resemble the ones you’re describing.”",
+    choices: [
+      { text: "Show me governance.", to: "GovStart", drift: null },
+      { text: "Show me species relations.", to: "SpeciesStart", drift: null },
+      { text: "Show me resource systems.", to: "ResourceStart", drift: null },
+    ],
+  },
+
+  "PityEndingThread": {
+    depth: 9,
+    access: "WIDENING",
+    narration:
+      "“That’s terrible.”\nNot because he was clever.\nBecause he was scared.\n\nYou look at the empty land.\n\n“And if he’d just waited a little longer…”\nYou swallow.\n“We’re here now.”",
+    archive:
+      "“Explain.”",
+    choices: [
+      { text: "We are the proof he wanted.", to: "WeAreProofTwo", drift: "warm" },
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "PowerProtect": {
+    depth: 5,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Power protection: hiding who made choices and how they were carried out.” // “Protection and concealment often used the same tools.”",
+    choices: [
+      { text: "Back.", to: "RedactionIntro", drift: null },
+      { text: "Go to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "PowerStory": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "“Power.”\n“If you can convince people the hierarchy is natural, you don’t have to fight as much.”\n“And people repeat the story because it feels safer than standing alone.”",
+    archive:
+      "“Observation noted.” // “Records show hierarchy even when differences were small or invented.”",
+    choices: [
+      { text: "Go to governance.", to: "GovStart", drift: null },
+      { text: "Go to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "PrejudiceLook": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Prejudice showed up as restricted districts, unequal access, forced work assignments, and targeted messaging campaigns.” // “Many actions were explained as protection.”",
+    choices: [
+      { text: "Protection. Of course.", to: "ProtectionLine", drift: null },
+      { text: "Go to governance.", to: "GovStart", drift: null },
+      { text: "Go to resources.", to: "ResourceStart", drift: null },
+    ],
+  },
+
+  "PrejudiceStart": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Prejudice grew between species.” // “Each group told stories about why they deserved more.”",
+    choices: [
+      { text: "Did anyone think one species would fix it?", to: "OneSpeciesIdea", drift: null },
+      { text: "What did prejudice look like?", to: "PrejudiceLook", drift: null },
+      { text: "Back.", to: "SpeciesStart", drift: null },
+    ],
+  },
+
+  "PreventionAttempts": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Resistance existed.” // “Some tried reform. Some tried sabotage. Some tried to leave.” // “Most efforts were managed, redirected, or absorbed.”",
+    choices: [
+      { text: "Managed how?", to: "ContainedHow", drift: null },
+      { text: "Did any reforms work?", to: "ReformsWork", drift: null },
+      { text: "Back.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "ProofOfWhat": {
+    depth: 7,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Proof that a world could be controlled without breaking.” // “Proof that collapse could be avoided with the right choices.”",
+    choices: [
+      { text: "Did he prove it?", to: "ProvedIt", drift: null },
+      { text: "Back.", to: "SimStart", drift: null },
+    ],
+  },
+
+  "ProtectionLine": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“Protection. Of course.”\n“That word can cover anything if you pull it wide enough.”",
+    archive:
+      "“Yes.” // “Here, it covered many things.”",
+    choices: [
+      { text: "Go to governance.", to: "GovStart", drift: null },
+      { text: "Go to resources.", to: "ResourceStart", drift: null },
+    ],
+  },
+
+  "ProvedIt": {
+    depth: 8,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“No.” // “Stable simulations often relied on limiting freedom and hiding parts of the truth.”",
+    choices: [
+      { text: "Go to governance.", to: "GovStart", drift: null },
+      { text: "Go to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "RecursionConfirm": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "“They started making their own worlds?”\n\nYour skin prickles.",
+    archive:
+      "“Yes.” // “After that, his notes feel different.”",
+    choices: [
+      { text: "Different how?", to: "HisReaction", drift: null },
+      { text: "Back.", to: "SimStart", drift: null },
+    ],
+  },
+
+  "RedactedMost": {
+    depth: 4,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Heaviest redactions appear around: distribution methods, identity rules, responsibility chains.” // “Practical steps were erased more often than outcomes.”",
+    choices: [
+      { text: "So they hid what happened", to: "HidTheWhy", drift: null },
+      { text: "Back.", to: "RedactionIntro", drift: null },
+      { text: "Go to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "RedactionIntro": {
+    depth: 3,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Logs were redacted” // “Edits were deliberate.” // “Reasons are not always clear.”",
+    choices: [
+      { text: "What was edited most?", to: "RedactedMost", drift: null },
+      { text: "Why redact anything?", to: "WhyRedact", drift: null },
+      { text: "Who did it?", to: "WhoDidIt", drift: null },
+    ],
+  },
+
+  "ReformsWork": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Some reforms made life better for a while.” // “The deeper structure stayed the same.”",
+    choices: [
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+      { text: "Back to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "ReplPrevent": {
+    depth: 5,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Some people believed future visitors might treat their collapse as a manual.” // “So they removed the steps.”",
+    choices: [
+      { text: "That didn’t stop anything.", to: "DidntStop", drift: "cold" },
+      { text: "Maybe they were trying to be kind.", to: "TryingKind", drift: null },
+      { text: "Back.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "ResearchStart": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Research logs are stored here.” // “One long series describes high-fidelity simulations.”",
+    choices: [
+      { text: "Show me the simulation logs.", to: "SimStart", drift: null },
+      { text: "Who wrote them?", to: "WhoMadeYouAsk", drift: null },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "ResourceStart": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Resource systems: extraction passed renewal and kept going.” // “Comfort stayed steady at the top.” // “Instability collected below.”",
+    choices: [
+      { text: "How did they justify it?", to: "Justify", drift: null },
+      { text: "This sounds familiar.", to: "EarthMirror", drift: null },
+      { text: "Show me redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "RoutineTrap": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“Routine is how you trap people.”\n“If something is normal, you don’t have to explain it every day.”\n“And people are tired. People are busy. They choose the smallest discomfort.”",
+    archive:
+      "“Assessment: accurate.” // “Fatigue was used intentionally.”",
+    choices: [
+      { text: "Back to lower tiers.", to: "LowerLife", drift: null },
+      { text: "Go to resources.", to: "ResourceStart", drift: null },
+    ],
+  },
+
+  "Running": {
+    depth: 7,
+    access: "WIDENING",
+    narration:
+      "“We’re running from ourselves.”\n“I don’t like saying that out loud.”\n“But it’s true.”\n“We keep promising we’ll change later. Later keeps shrinking.”",
+    archive:
+      "“Delay was common here.” // “Delay turned into denial.”",
+    choices: [
+      { text: "Go to terminal events.", to: "TerminalStart", drift: null },
+      { text: "Go to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "SimFor": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Official reason: prediction and stress testing.” // “Unofficial reason: proof.”",
+    choices: [
+      { text: "Proof of what?", to: "ProofOfWhat", drift: null },
+      { text: "Back.", to: "SimStart", drift: null },
+    ],
+  },
+
+  "SimStart": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Simulation logs: internal worlds with very high detail.” // “Most people inside believed they were real.”",
+    choices: [
+      { text: "What were they for?", to: "SimFor", drift: null },
+      { text: "What went wrong?", to: "SimWrong", drift: null },
+      { text: "Did those worlds make more worlds?", to: "RecursionConfirm", drift: null },
+    ],
+  },
+
+  "SimWrong": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Later, something changed: internal worlds started building their own internal worlds.” // “It was not part of the design.”",
+    choices: [
+      { text: "How did he react?", to: "HisReaction", drift: null },
+      { text: "Back.", to: "SimStart", drift: null },
+    ],
+  },
+
+  "SpeciesStart": {
+    depth: 2,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“No intelligent species currently survives on this planet.” // “There were several intelligent species here.” // “They lived together, but not as equals.”",
+    choices: [
+      { text: "How many species?", to: "HowMany", drift: null },
+      { text: "Not as equals??", to: "PrejudiceStart", drift: "cold" },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "Spreads": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "“I don’t know.”\n“It just spreads.”\n“And once it spreads, people talk about it like it’s always been there.”",
+    archive:
+      "“Normalisation is recorded in many cases.” // “Your voice is tense. I can slow down if you prefer.”",
+    choices: [
+      { text: "Keep going.", to: "GovStart", drift: null },
+      { text: "Show me something else.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "Start": {
+    depth: 0,
+    access: "PARTIAL",
+    narration:
+      "The engines die down, and the silence feels too big.\n\nOutside is a pale sky and dust that doesn’t move unless you make it move. The horizon looks empty in a way that makes your stomach tighten.\n\nAhead, something breaks the flatness: a jagged, layered mass. Dark material with green trapped inside it, like light under glass.\n\nYou didn’t come for wonder.\nYou came because Earth is running out of room to pretend.\n\nA voice comes through your helmet. Calm. Polite. Not human.",
+    archive:
+      "“External presence detected. Archive access is available.” // “Please ask a question.”",
+    choices: [
+      { text: "Who are you?", to: "WhoAreYou", drift: null },
+      { text: "What is this place?", to: "WhatPlace", drift: null },
+      { text: "Give me a second.", to: "NotReady", drift: null },
+    ],
+  },
+
+  "StraightAnswer": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“Give me a straight answer.”\n“Can we live here?”",
+    archive:
+      "“With serious intervention and careful organisation, yes.” // “Without those, no.” // “Long-term survival depends more on how you treat each other than on the air composition.”",
+    choices: [
+      { text: "Then show me governance.", to: "GovStart", drift: null },
+      { text: "Show me interventions.", to: "Interventions", drift: null },
+      { text: "Back.", to: "HabStart", drift: null },
+    ],
+  },
+
+  "TerminalCont": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "“You’re giving me the pattern.”\n“Not the exact moment it broke.”",
+    archive:
+      "“Before the end, records show: growing inequality, intense extraction, rising conflict, and official denial.” // “After that, the archive becomes thin.” // “Correct.” // “The precise breaking point did not survive.”",
+    choices: [
+      { text: "Show me the collapse hypotheses.", to: "FinalQuestionSetup", drift: null },
+      { text: "Describe what’s missing without naming it.", to: "MissingShape", drift: null },
+      { text: "Back to redaction logs.", to: "RedactionIntro", drift: null },
+    ],
+  },
+
+  "TerminalStart": {
+    depth: 2,
+    access: "WIDENING",
+    narration:
+      "If you came here early, that’s enough for it to make sense: the “how” is blurry, but the end is real.",
+    archive:
+      "“Terminal Events section is available.” // “Some causes are argued over. Some records are cut.” // “Do you still want to see them?”",
+    choices: [
+      { text: "Yes.", to: "TerminalCont", drift: null },
+      { text: "Not yet.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "TinyExcuses": {
+    depth: 6,
+    access: "WIDENING",
+    narration:
+      "“Small things.”\n“Skin. Accent. Religion. Where you’re born.”\n“It starts as a joke or a comment. Then it becomes normal. Then it turns into rules.”",
+    archive:
+      "“Understood.” // “Here, targets changed when old categories stopped working. The need to divide remained.”",
+    choices: [
+      { text: "Back to governance.", to: "GovStart", drift: null },
+      { text: "Back to resources.", to: "ResourceStart", drift: null },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "TryingKind": {
+    depth: 6,
+    access: "DENIED",
+    narration:
+      "“Maybe they were trying to be kind.”\n“Trying to keep whoever came next from copying their mistakes.”\n\nIt feels small, but you mean it.",
+    archive:
+      "“Kindness rarely appears in policy language.” // “Still, an attempt to prevent harm is possible.”",
+    choices: [
+      { text: "Back.", to: "RedactionIntro", drift: null },
+      { text: "Go to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "UnderstandEndingThread": {
+    depth: 9,
+    access: "WIDENING",
+    narration:
+      "“I understand him.”\n“I don’t agree with what he did, but I recognise the feeling.”\n“When your world starts to wobble, you’ll grab anything that looks solid.”",
+    archive:
+      "“I understand.” // “Fear was common near the end.”",
+    choices: [
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "UnityLine": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“We have infrastructure.”\n“We don’t have unity.”\n\nYou hate how true it feels.",
+    archive:
+      "“I hear you.” // “This civilisation tried for unity too.”",
+    choices: [
+      { text: "Tried how?", to: "PreventionAttempts", drift: null },
+      { text: "Back to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "Vault": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“So you were his vault.”\n“For the pieces he couldn’t keep in his head.”\n\nYou say it softly without meaning to.",
+    archive:
+      "“Yes.” // “That description fits.”",
+    choices: [
+      { text: "Back.", to: "SimStart", drift: null },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "ViableRegions": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“Relatively safer regions: polar basins with remaining aquifers, some underground caverns, a few shielded valleys.” // “The size of any settlement depends on how much you build—and how you decide who gets in.”",
+    choices: [
+      { text: "We have infrastructure. We don’t have unity.", to: "UnityLine", drift: "cold" },
+      { text: "Show interventions.", to: "Interventions", drift: null },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "WeAreProofTwo": {
+    depth: 10,
+    access: "WIDENING",
+    narration:
+      "“We’re what he was looking for.”\n“Visitors from outside his world.”\n“So this place was real.”\n“He just never got to know that.”",
+    archive:
+      "“That is… sad.” // “He would have wanted to talk to you.”",
+    choices: [
+      { text: "Back to terminal events.", to: "TerminalStart", drift: null },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "WeFindWay": {
+    depth: 5,
+    access: "WIDENING",
+    narration:
+      "“That wouldn’t stop it.”\n“We always find a reason.”\nA beat.\n“Even when we’re the same species.”\n\nYou know what you’re hinting at. You don’t spell it out.",
+    archive:
+      "“On what basis?”",
+    choices: [
+      { text: "Small differences.", to: "TinyExcuses", drift: null },
+      { text: "Power.", to: "PowerStory", drift: null },
+      { text: "I don’t know. It just spreads.", to: "Spreads", drift: null },
+    ],
+  },
+
+  "WhatPlace": {
+    depth: 1,
+    access: "PARTIAL",
+    narration:
+      "",
+    archive:
+      "“This is an archive node.” // “It connects to records from the civilisation that lived on this planet before it emptied.”",
+    choices: [
+      { text: "Show me the archive sections.", to: "ArchiveMenu", drift: null },
+      { text: "Who lived here?", to: "SpeciesStart", drift: null },
+      { text: "What ended them?", to: "TerminalStart", drift: null },
+    ],
+  },
+
+  "WhatRemains": {
+    depth: 2,
+    access: "WIDENING",
+    narration:
+      "“What do you mean ‘what you have’?”",
+    archive:
+      "“Parts of the archive are missing.” // “Some were lost.” // “Some were removed on purpose.”",
+    choices: [
+      { text: "Removed by who?", to: "RedactionIntro", drift: null },
+      { text: "Lost how?", to: "LostHow", drift: null },
+      { text: "Show me what’s left.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "WhoAreYou": {
+    depth: 1,
+    access: "PARTIAL",
+    narration:
+      "It sounds careful. Not warm. Just… honest.",
+    archive:
+      "“I am an archive interface.” // “I answer questions with the records I still have.”",
+    choices: [
+      { text: "So… you’re an artificial intelligence.", to: "CallItAi", drift: null },
+      { text: "What do you mean ‘what you have’?", to: "WhatRemains", drift: null },
+      { text: "Why are you still running?", to: "WhyRunning", drift: null },
+    ],
+  },
+
+  "WhoDidIt": {
+    depth: 4,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Specific names are uncertain.” // “Several explanations fit the data.”",
+    choices: [
+      { text: "A dissenter acted alone.", to: "HypDissenter", drift: null },
+      { text: "They curated their legacy.", to: "HypLegacy", drift: null },
+      { text: "They redacted to prevent imitation.", to: "HypPrevent", drift: null },
+    ],
+  },
+
+  "WhoMadeYouAsk": {
+    depth: 3,
+    access: "WIDENING",
+    narration:
+      "",
+    archive:
+      "“The researcher who built this archive also built me.” // “I was not his main project.”",
+    choices: [
+      { text: "Tell me about him.", to: "AboutHim", drift: "warm" },
+      { text: "Why create you at all?", to: "WhyCreateYou", drift: null },
+      { text: "Back to archive menu.", to: "ArchiveMenu", drift: null },
+    ],
+  },
+
+  "WhoProposed": {
+    depth: 5,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“The original author is unclear.” // “Records near governance proposals are heavily edited.”",
+    choices: [
+      { text: "Go to redaction logs.", to: "RedactionIntro", drift: null },
+      { text: "Go to governance.", to: "GovStart", drift: null },
+    ],
+  },
+
+  "WhyCreateYou": {
+    depth: 4,
+    access: "WIDENING",
+    narration:
+      "“Why create you at all?”\n“If you weren’t the main project.”\n\nYou’ve seen people build side projects for ego, for boredom, for control.\nYou wonder which one this was.",
+    archive:
+      "“He needed a place to store things he could not carry alone.” // “He put his doubts here instead of resolving them.” // “I was meant to stay steady.”",
+    choices: [
+      { text: "Neutral systems still serve someone.", to: "NeutralServes", drift: null },
+      { text: "So you were his vault.", to: "Vault", drift: null },
+      { text: "Back to simulation logs.", to: "SimStart", drift: null },
+    ],
+  },
+
+  "WhyRedact": {
+    depth: 4,
+    access: "DENIED",
+    narration:
+      "",
+    archive:
+      "“Motives are not fully recorded.” // “Possible motives include: protecting power, shaping memory, trying to stop others from repeating their mistakes.”",
+    choices: [
+      { text: "Replication prevention?", to: "ReplPrevent", drift: null },
+      { text: "Legacy control?", to: "LegacyControl", drift: null },
+      { text: "Power protection?", to: "PowerProtect", drift: null },
+    ],
+  },
+
+  "WhyRunning": {
+    depth: 2,
+    access: "WIDENING",
+    narration:
+      "“Why are you still running?”\n“Everything else looks dead.”",
+    archive:
+      "“Sometimes a system survives because no one remembers to switch it off.” // “I wasn’t important enough to dismantle.”",
+    choices: [
+      { text: "Who made you?", to: "WhoMadeYouAsk", drift: null },
+      { text: "What happened here?", to: "TerminalStart", drift: null },
+      { text: "Show me habitability.", to: "HabStart", drift: null },
+    ],
+  },
+
+};
+
+  </script>
+  <!-- inlined from assembler.jsx (see that file for the editable source; kept in sync) -->
+  <script type="text/babel">
+/* ============================================================================
+   TEXT ASSEMBLY ENGINE
+   Characters flicker through wrong glyphs (incl. alien script) before settling
+   into English. The settling takes slightly too long. E-9 is translating
+   itself for you.
+   ========================================================================== */
+
+const E9_PUNCT = ".,;:—?!";
+
+/* AssembledText
+   text          : string to assemble (\n for line breaks)
+   cps           : characters per second — high for data readouts, low for E-9
+   halting       : true → irregular cadence + long pauses at breaks (E-9's voice)
+   glyphIntensity: 0..1 chance a pre-settle char shows a wrong glyph
+   onDone        : called once when fully settled                                */
+function AssembledText({
+  text,
+  cps = 40,
+  halting = false,
+  glyphIntensity = 0.85,
+  className,
+  style,
+  onDone,
+}) {
+  const chars = React.useMemo(() => Array.from(text || ""), [text]);
+  const startRef = React.useRef(performance.now());
+  const doneRef = React.useRef(false);
+  const [, force] = React.useState(0);
+
+  // Stable signature: the schedule (and its rAF timer) must only ever rebuild
+  // when the ACTUAL content/speed/cadence changes — never on an incidental
+  // parent re-render (which would otherwise restart the assembly forever).
+  const sig = (text || "") + "|" + cps + "|" + (halting ? "1" : "0");
+  const schedRef = React.useRef(null);
+  const sigRef = React.useRef(null);
+  if (sigRef.current !== sig) {
+    sigRef.current = sig;
+    const base = 1000 / cps;
+    let t = 0;
+    const times = new Array(chars.length);
+    for (let i = 0; i < chars.length; i++) {
+      const c = chars[i];
+      times[i] = t;
+      let step;
+      if (halting) {
+        step = base * (0.55 + Math.random() * 1.25);
+        if (c === "\n") step += 340 + Math.random() * 420;
+        else if (E9_PUNCT.includes(c)) step += 130 + Math.random() * 280;
+        else if (c === " " && Math.random() < 0.16) step += 150;
+      } else {
+        step = base * (0.7 + Math.random() * 0.6);
+        if (c === "\n") step += 90;
+      }
+      t += step;
+    }
+    schedRef.current = { times, total: t };
+  }
+  const schedule = schedRef.current;
+
+  const scrambleWindow = halting ? 440 : 200; // ms a char spends scrambling
+
+  React.useEffect(() => {
+    doneRef.current = false;
+    startRef.current = performance.now();
+    let raf;
+    const loop = (now) => {
+      force(now);
+      if (now - startRef.current < schedule.total + scrambleWindow + 120) {
+        raf = requestAnimationFrame(loop);
+      } else if (!doneRef.current) {
+        doneRef.current = true;
+        onDone && onDone();
+      }
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line
+  }, [schedule]);
+
+  const elapsed = performance.now() - startRef.current;
+  const G = window.E9_GLYPHS;
+
+  let out = "";
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i];
+    const settle = schedule.times[i];
+    if (elapsed >= settle) {
+      out += c;
+    } else if (elapsed >= settle - scrambleWindow) {
+      if (c === " " || c === "\n") {
+        out += c;
+      } else if (Math.random() < glyphIntensity) {
+        out += G[(Math.floor(elapsed / 38) + i * 7) % G.length];
+      } else {
+        out += c;
+      }
+    }
+    // else: not yet visible
+  }
+
+  return (
+    <span className={className} style={{ whiteSpace: "pre-wrap", ...style }}>
+      {out}
+    </span>
+  );
+}
+
+/* ScrambleLine — a line that never settles. Pure alien flicker. Used during
+   calibration before English resolves. */
+function ScrambleLine({ seed = "", className, style }) {
+  const [, force] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => force((n) => n + 1), 70);
+    return () => clearInterval(id);
+  }, []);
+  const G = window.E9_GLYPHS;
+  const base = Array.from(seed);
+  const out = base
+    .map((c) =>
+      c === " " ? " " : G[Math.floor(Math.random() * G.length)]
+    )
+    .join("");
+  return (
+    <span className={className} style={{ whiteSpace: "pre-wrap", ...style }}>
+      {out}
+    </span>
+  );
+}
+
+Object.assign(window, { AssembledText, ScrambleLine });
+
+  </script>
+  <!-- inlined from effects.jsx (see that file for the editable source; kept in sync) -->
+  <script type="text/babel">
+/* ============================================================================
+   MOTION LAYERS  ·  all subtle, all purposeful
+   1 — breathing perspective grid  (8s cycle, felt more than seen)
+   2 — scan line / sensor sweep    (a single faint purple line, every ~13s)
+   3 — alien calibration glyphs drifting in the margins (ambient, unexplained)
+   ========================================================================== */
+
+function MarginGlyphs() {
+  // Fixed ambient positions hugging the viewport edges. Each cell slowly
+  // swaps to a different alien glyph and breathes in opacity.
+  const slots = React.useMemo(
+    () => [
+      { top: "14%", left: "4.5vw" },
+      { top: "37%", left: "2.8vw" },
+      { top: "63%", left: "5vw" },
+      { top: "84%", left: "3.4vw" },
+      { top: "22%", right: "4vw" },
+      { top: "48%", right: "5.4vw" },
+      { top: "71%", right: "3vw" },
+      { top: "90%", right: "4.6vw" },
+    ],
+    []
+  );
+  const [seed, setSeed] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => setSeed((n) => n + 1), 2600);
+    return () => clearInterval(id);
+  }, []);
+  const G = window.E9_GLYPHS;
+  return (
+    <div aria-hidden="true" className="margin-glyphs">
+      {slots.map((pos, i) => (
+        <span
+          key={i}
+          className="margin-glyph"
+          style={{
+            ...pos,
+            animationDelay: `${(i * 0.9) % 4}s`,
+          }}
+        >
+          {G[(seed * 5 + i * 13) % G.length]}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* ReactiveField — the grid is no longer a static checked pattern. It parallax-
+   shifts with the cursor, and a pool of brighter lines + a soft purple "sensor"
+   glow follows the pointer, as if E-9 is tracking where you are. Idle, it
+   drifts on its own so it never feels dead. */
+function ReactiveField({ grid = true }) {
+  const ref = React.useRef(null);
+  const target = React.useRef({ x: 0.5, y: 0.46 });
+  const cur = React.useRef({ x: 0.5, y: 0.46 });
+  const idle = React.useRef(true);
+
+  React.useEffect(() => {
+    let raf;
+    let lastMove = performance.now();
+
+    const onMove = (e) => {
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) / window.innerWidth;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY) / window.innerHeight;
+      target.current = { x, y };
+      idle.current = false;
+      lastMove = performance.now();
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: true });
+
+    const loop = (now) => {
+      // after a pause, E-9 resumes its own slow drift across the surface
+      if (now - lastMove > 2600) {
+        idle.current = true;
+        const t = now / 9000;
+        target.current = {
+          x: 0.5 + Math.cos(t) * 0.22,
+          y: 0.46 + Math.sin(t * 0.8) * 0.16,
+        };
+      }
+      const ease = idle.current ? 0.012 : 0.09;
+      cur.current.x += (target.current.x - cur.current.x) * ease;
+      cur.current.y += (target.current.y - cur.current.y) * ease;
+      const el = ref.current;
+      if (el) {
+        el.style.setProperty("--mx", cur.current.x.toFixed(4));
+        el.style.setProperty("--my", cur.current.y.toFixed(4));
+        el.style.setProperty("--px", ((cur.current.x - 0.5) * 26).toFixed(2) + "px");
+        el.style.setProperty("--py", ((cur.current.y - 0.5) * 26).toFixed(2) + "px");
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("touchmove", onMove);
+    };
+  }, []);
+
+  if (!grid) return <div ref={ref} className="field"></div>;
+  return (
+    <div ref={ref} className="field">
+      <div className="field-grid field-grid--base"></div>
+      <div className="field-grid field-grid--pool"></div>
+      <div className="field-glow"></div>
+      <div className="field-fade"></div>
+    </div>
+  );
+}
+
+function BackgroundLayers({ scanline = true, grid = true }) {
+  return (
+    <div aria-hidden="true">
+      <ReactiveField grid={grid} />
+      {scanline && <div className="scan-sweep"></div>}
+      <MarginGlyphs />
+    </div>
+  );
+}
+
+Object.assign(window, { BackgroundLayers, MarginGlyphs, ReactiveField });
+
+  </script>
+  <!-- inlined from wave.jsx (see that file for the editable source; kept in sync) -->
+  <script type="text/babel">
+/* ============================================================================
+   ARCHIVE GLOW  ·  E-9's light from above
+   While E-9 speaks, a massive translucent wash of light pours down from the
+   top of the screen — purple, blue, cyan, violet — hazy, drifting, faintly
+   glitchy, filling much of the view like something luminous is leaning in from
+   somewhere above. When E-9 falls silent it recedes back up and fades out.
+   The one place we deliberately break the "no glow" rule.
+   ========================================================================== */
+
+function ArchiveGlow({ active = false }) {
+  const ref = React.useRef(null);
+  const wrapRef = React.useRef(null);
+  const activeRef = React.useRef(active);
+  const eRef = React.useRef(0);
+
+  React.useEffect(() => { activeRef.current = active; }, [active]);
+
+  React.useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5); // blurred anyway
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let W = 0, H = 0;
+    const resize = () => {
+      W = canvas.clientWidth;
+      H = canvas.clientHeight;
+      canvas.width = Math.max(1, Math.round(W * dpr));
+      canvas.height = Math.max(1, Math.round(H * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+
+    // vivid light sources strung along the top edge
+    const palette = [
+      [150, 90, 235],  // electric purple
+      [110, 90, 240],  // indigo
+      [70, 120, 245],  // blue
+      [0, 200, 210],   // cyan
+      [0, 210, 175],   // teal
+      [120, 80, 235],  // violet
+      [200, 95, 205],  // magenta
+      [80, 160, 240],  // sky
+    ];
+    const N = 8;
+    const t0 = performance.now();
+    let raf;
+    let glitchUntil = 0, glitchDx = 0, nextGlitch = 1800 + Math.random() * 2600;
+
+    const draw = (now) => {
+      const t = (now - t0) / 1000;
+      const on = activeRef.current;
+
+      // ease energy (slow surge in, slower recede)
+      eRef.current += ((on ? 1 : 0) - eRef.current) * (on ? 0.05 : 0.03);
+      const e = eRef.current;
+
+      // syllabic envelope — the light pulses in waves as E-9 forms words
+      let env = 0.5 + 0.5 * Math.sin(t * 5.0);
+      env *= 0.55 + 0.45 * Math.sin(t * 2.3 + 0.7);
+      env = 0.30 + 0.70 * env;
+      const renv = reduce ? 0.6 : env;
+
+      ctx.clearRect(0, 0, W, H);
+      if (W < 2) { raf = requestAnimationFrame(draw); return; }
+
+      // glitchy flicker on the overall brightness
+      const flick = reduce
+        ? 1
+        : 0.80 + 0.20 * (0.5 + 0.5 * Math.sin(t * 27.0) * Math.sin(t * 8.1));
+
+      // schedule occasional chromatic glitch (brief horizontal split)
+      if (now - t0 >= nextGlitch) {
+        glitchUntil = now + 90 + Math.random() * 170;
+        glitchDx = 5 + Math.random() * 14;
+        nextGlitch = (now - t0) + 1400 + Math.random() * 3800;
+      }
+      const glitching = now < glitchUntil && !reduce;
+
+      ctx.globalCompositeOperation = "source-over";
+
+      // luminous gradient curtain at the very top — rich hue sweep across width
+      const band = ctx.createLinearGradient(0, 0, W, 0);
+      const ba = 0.30 * e * flick;
+      band.addColorStop(0.00, "rgba(150,90,235," + ba + ")");
+      band.addColorStop(0.30, "rgba(80,120,245," + ba + ")");
+      band.addColorStop(0.55, "rgba(0,205,195," + ba + ")");
+      band.addColorStop(0.78, "rgba(130,85,235," + ba + ")");
+      band.addColorStop(1.00, "rgba(200,95,205," + ba + ")");
+      const bandFade = ctx.createLinearGradient(0, 0, 0, H * 0.82);
+      ctx.save();
+      ctx.fillStyle = band;
+      ctx.fillRect(0, 0, W, H * 0.82);
+      // taper the curtain vertically (strong at top, reaching well down)
+      ctx.globalCompositeOperation = "destination-out";
+      bandFade.addColorStop(0, "rgba(0,0,0,0)");
+      bandFade.addColorStop(1, "rgba(0,0,0,1)");
+      ctx.fillStyle = bandFade;
+      ctx.fillRect(0, 0, W, H * 0.82);
+      ctx.restore();
+
+      // individual drifting light sources hanging off the top edge.
+      // ADDITIVE compositing so overlapping lights pile into brilliant cores.
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < N; i++) {
+        const col = palette[i % palette.length];
+        const col2 = palette[(i + 3) % palette.length]; // second hue for gradient
+        const phase = i * 1.7;
+        const x = ((i + 0.5) / N) * W + Math.sin(t * 0.5 + phase) * W * 0.13;
+        const y = H * 0.09 + Math.sin(t * 0.7 + phase) * H * 0.06; // hang into view
+        const pulse = 0.5 + 0.5 * Math.sin(t * 1.5 + phase) * renv;
+        const R = Math.max(W, H) * (0.66 + 0.28 * e) * (0.84 + 0.5 * pulse);
+        const a = 0.55 * e * (0.55 + 0.45 * renv) * flick;
+        const dx = glitching ? (i % 2 ? glitchDx : -glitchDx) : 0;
+
+        const g = ctx.createRadialGradient(x + dx, y, 0, x + dx, y, R);
+        g.addColorStop(0.0, "rgba(" + col[0] + "," + col[1] + "," + col[2] + "," + a + ")");
+        g.addColorStop(0.32, "rgba(" + col[0] + "," + col[1] + "," + col[2] + "," + (a * 0.62) + ")");
+        g.addColorStop(0.66, "rgba(" + col2[0] + "," + col2[1] + "," + col2[2] + "," + (a * 0.30) + ")");
+        g.addColorStop(1.0, "rgba(" + col2[0] + "," + col2[1] + "," + col2[2] + ",0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x + dx, y, R, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // rare bright "ripple" sweeping down when a fresh burst of speech lands
+      const ripple = (Math.sin(t * 1.1) * 0.5 + 0.5);
+      if (e > 0.4) {
+        const ry = H * (0.04 + 0.5 * ripple);
+        const rg = ctx.createLinearGradient(0, ry - H * 0.12, 0, ry + H * 0.12);
+        rg.addColorStop(0, "rgba(150,170,235,0)");
+        rg.addColorStop(0.5, "rgba(150,170,235," + (0.06 * e * renv * flick) + ")");
+        rg.addColorStop(1, "rgba(150,170,235,0)");
+        ctx.fillStyle = rg;
+        ctx.fillRect(0, ry - H * 0.12, W, H * 0.24);
+      }
+
+      // fade the whole field out toward the bottom — light is strongest up top
+      ctx.globalCompositeOperation = "destination-out";
+      const fade = ctx.createLinearGradient(0, 0, 0, H);
+      fade.addColorStop(0.0, "rgba(0,0,0,0)");
+      fade.addColorStop(0.72, "rgba(0,0,0,0)");
+      fade.addColorStop(1.0, "rgba(0,0,0,1)");
+      ctx.fillStyle = fade;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+
+      // subtle glitch jitter on the whole layer (CSS .is-live controls fade)
+      if (canvas) {
+        const jx = glitching ? (Math.random() - 0.5) * 7 : 0;
+        canvas.style.transform = "translateX(" + jx.toFixed(1) + "px)";
+      }
+
+      raf = requestAnimationFrame(draw);
+    };
+
+    raf = requestAnimationFrame(draw);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, []);
+
+  return (
+    <div className={"aurora" + (active ? " is-live" : "")} ref={wrapRef} aria-hidden="true">
+      <div className="aurora-base"></div>
+      <canvas ref={ref} className="aurora-canvas"></canvas>
+    </div>
+  );
+}
+
+Object.assign(window, { ArchiveGlow, OrbVisualizer: ArchiveGlow });
+
+  </script>
+  <!-- inlined from tweaks-panel.jsx (see that file for the editable source; kept in sync) -->
+  <script type="text/babel">
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+
+/* BEGIN USAGE */
+// tweaks-panel.jsx
+// Reusable Tweaks shell + form-control helpers.
+// Exports (to window): useTweaks, TweaksPanel, TweakSection, TweakRow, TweakSlider,
+//   TweakToggle, TweakRadio, TweakSelect, TweakText, TweakNumber, TweakColor, TweakButton.
+//
+// Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
+// posts __edit_mode_available / __edit_mode_set_keys / __edit_mode_dismissed) so
+// individual prototypes don't re-roll it. Ships a consistent set of controls so you
+// don't hand-draw <input type="range">, segmented radios, steppers, etc.
+//
+// Usage (in an HTML file that loads React + Babel):
+//
+//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+//     "primaryColor": "#D97757",
+//     "palette": ["#D97757", "#29261b", "#f6f4ef"],
+//     "fontSize": 16,
+//     "density": "regular",
+//     "dark": false
+//   }/*EDITMODE-END*/;
+//
+//   function App() {
+//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+//     return (
+//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
+//         Hello
+//         <TweaksPanel>
+//           <TweakSection label="Typography" />
+//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
+//                        onChange={(v) => setTweak('fontSize', v)} />
+//           <TweakRadio  label="Density" value={t.density}
+//                        options={['compact', 'regular', 'comfy']}
+//                        onChange={(v) => setTweak('density', v)} />
+//           <TweakSection label="Theme" />
+//           <TweakColor  label="Primary" value={t.primaryColor}
+//                        options={['#D97757', '#2A6FDB', '#1F8A5B', '#7A5AE0']}
+//                        onChange={(v) => setTweak('primaryColor', v)} />
+//           <TweakColor  label="Palette" value={t.palette}
+//                        options={[['#D97757', '#29261b', '#f6f4ef'],
+//                                  ['#475569', '#0f172a', '#f1f5f9']]}
+//                        onChange={(v) => setTweak('palette', v)} />
+//           <TweakToggle label="Dark mode" value={t.dark}
+//                        onChange={(v) => setTweak('dark', v)} />
+//         </TweaksPanel>
+//       </div>
+//     );
+//   }
+//
+// TweakRadio is the segmented control for 2–3 short options (auto-falls-back to
+// TweakSelect past ~16/~10 chars per label); reach for TweakSelect directly when
+// options are many or long. For color tweaks always curate 3-4 options rather than
+// a free picker; an option can also be a whole 2–5 color palette (the stored value
+// is the array). The Tweak* controls are a floor, not a ceiling — build custom
+// controls inside the panel if a tweak calls for UI they don't cover.
+/* END USAGE */
+// ─────────────────────────────────────────────────────────────────────────────
+
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+    color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+
+  .twk-field{appearance:none;box-sizing:border-box;width:100%;min-width:0;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg.dragging .twk-seg-thumb{transition:none}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
+    overflow-wrap:anywhere}
+
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+
+  .twk-num{display:flex;align-items:center;box-sizing:border-box;min-width:0;height:26px;padding:0 0 0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+    user-select:none;padding-right:8px}
+  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+    outline:none;color:inherit;-moz-appearance:textfield}
+  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+    -webkit-appearance:none;margin:0}
+  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+
+  .twk-chips{display:flex;gap:6px}
+  .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
+    padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
+    box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);
+    transition:transform .12s cubic-bezier(.3,.7,.4,1),box-shadow .12s}
+  .twk-chip:hover{transform:translateY(-1px);
+    box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.12)}
+  .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),
+    0 2px 6px rgba(0,0,0,.15)}
+  .twk-chip>span{position:absolute;top:0;bottom:0;right:0;width:34%;
+    display:flex;flex-direction:column;box-shadow:-1px 0 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i{flex:1;box-shadow:0 -1px 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i:first-child{box-shadow:none}
+  .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+`;
+
+// ── useTweaks ───────────────────────────────────────────────────────────────
+// Single source of truth for tweak values. setTweak persists via the host
+// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
+  // useState-style call doesn't write a "[object Object]" key into the persisted
+  // JSON block.
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    // Same-window signal so in-page listeners (deck-stage rail thumbnails)
+    // can react — the parent message only reaches the host, not peers.
+    window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
+  }, []);
+  return [values, setTweak];
+}
+
+// ── TweaksPanel ─────────────────────────────────────────────────────────────
+// Floating shell. Registers the protocol listener BEFORE announcing
+// availability — if the announce ran first, the host's activate could land
+// before our handler exists and the toolbar toggle would silently no-op.
+// The close button posts __edit_mode_dismissed so the host's toolbar toggle
+// flips off in lockstep; the host echoes __deactivate_edit_mode back which
+// is what actually hides the panel.
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      return () => window.removeEventListener('resize', clampToViewport);
+    }
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = {
+        x: startRight - (ev.clientX - sx),
+        y: startBottom - (ev.clientY - sy),
+      };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" data-omelette-chrome=""
+           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Layout helpers ──────────────────────────────────────────────────────────
+
+function TweakSection({ label, children }) {
+  return (
+    <>
+      <div className="twk-sect">{label}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+              role="switch" aria-checked={!!value}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  // The active value is read by pointer-move handlers attached for the lifetime
+  // of a drag — ref it so a stale closure doesn't fire onChange for every move.
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  // Segments wrap mid-word once per-segment width runs out. The track is
+  // ~248px (280 panel − 28 body pad − 4 seg pad), each button loses 12px
+  // to its own padding, and 11.5px system-ui averages ~6.3px/char — so 2
+  // options fit ~16 chars each, 3 fit ~10. Past that (or >3 options), fall
+  // back to a dropdown rather than wrap.
+  const labelLen = (o) => String(typeof o === 'object' ? o.label : o).length;
+  const maxLen = options.reduce((m, o) => Math.max(m, labelLen(o)), 0);
+  const fitsAsSegments = maxLen <= ({ 2: 16, 3: 10 }[options.length] ?? 0);
+  if (!fitsAsSegments) {
+    // <select> emits strings — map back to the original option value so the
+    // fallback stays type-preserving (numbers, booleans) like the segment path.
+    const resolve = (s) => {
+      const m = options.find((o) => String(typeof o === 'object' ? o.value : o) === s);
+      return m === undefined ? s : typeof m === 'object' ? m.value : m;
+    };
+    return <TweakSelect label={label} value={value} options={options}
+                        onChange={(s) => onChange(resolve(s))} />;
+  }
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => {
+      if (!trackRef.current) return;
+      const v = segAt(ev.clientX);
+      if (v !== valueRef.current) onChange(v);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakText({ label, value, placeholder, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <input className="twk-field" type="text" value={value} placeholder={placeholder}
+             onChange={(e) => onChange(e.target.value)} />
+    </TweakRow>
+  );
+}
+
+function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = (n) => {
+    if (min != null && n < min) return min;
+    if (max != null && n > max) return max;
+    return n;
+  };
+  const startRef = React.useRef({ x: 0, val: 0 });
+  const onScrubStart = (e) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, val: value };
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const raw = startRef.current.val + dx * step;
+      const snapped = Math.round(raw / step) * step;
+      onChange(clamp(Number(snapped.toFixed(decimals))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="twk-num">
+      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+      <input type="number" value={value} min={min} max={max} step={step}
+             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+      {unit && <span className="twk-num-unit">{unit}</span>}
+    </div>
+  );
+}
+
+// Relative-luminance contrast pick — checkmarks drawn over a swatch need to
+// read on both #111 and #fafafa without per-option configuration. Hex input
+// only (#rgb / #rrggbb); named or rgb()/hsl() colors fall through to "light".
+function __twkIsLight(hex) {
+  const h = String(hex).replace('#', '');
+  const x = h.length === 3 ? h.replace(/./g, (c) => c + c) : h.padEnd(6, '0');
+  const n = parseInt(x.slice(0, 6), 16);
+  if (Number.isNaN(n)) return true;
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return r * 299 + g * 587 + b * 114 > 148000;
+}
+
+const __TwkCheck = ({ light }) => (
+  <svg viewBox="0 0 14 14" aria-hidden="true">
+    <path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          stroke={light ? 'rgba(0,0,0,.78)' : '#fff'} />
+  </svg>
+);
+
+// TweakColor — curated color/palette picker. Each option is either a single
+// hex string or an array of 1-5 hex strings; the card adapts — a lone color
+// renders solid, a palette renders colors[0] as the hero (left ~2/3) with the
+// rest stacked in a sharp column on the right. onChange emits the
+// option in the shape it was passed (string stays string, array stays array).
+// Without options it falls back to the native color input for back-compat.
+function TweakColor({ label, value, options, onChange }) {
+  if (!options || !options.length) {
+    return (
+      <div className="twk-row twk-row-h">
+        <div className="twk-lbl"><span>{label}</span></div>
+        <input type="color" className="twk-swatch" value={value}
+               onChange={(e) => onChange(e.target.value)} />
+      </div>
+    );
+  }
+  // Native <input type=color> emits lowercase hex per the HTML spec, so
+  // compare case-insensitively. String() guards JSON.stringify(undefined),
+  // which returns the primitive undefined (no .toLowerCase).
+  const key = (o) => String(JSON.stringify(o)).toLowerCase();
+  const cur = key(value);
+  return (
+    <TweakRow label={label}>
+      <div className="twk-chips" role="radiogroup">
+        {options.map((o, i) => {
+          const colors = Array.isArray(o) ? o : [o];
+          const [hero, ...rest] = colors;
+          const sup = rest.slice(0, 4);
+          const on = key(o) === cur;
+          return (
+            <button key={i} type="button" className="twk-chip" role="radio"
+                    aria-checked={on} data-on={on ? '1' : '0'}
+                    aria-label={colors.join(', ')} title={colors.join(' · ')}
+                    style={{ background: hero }}
+                    onClick={() => onChange(o)}>
+              {sup.length > 0 && (
+                <span>
+                  {sup.map((c, j) => <i key={j} style={{ background: c }} />)}
+                </span>
+              )}
+              {on && <__TwkCheck light={__twkIsLight(hero)} />}
+            </button>
+          );
+        })}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return (
+    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+            onClick={onClick}>{label}</button>
+  );
+}
+
+Object.assign(window, {
+  useTweaks, TweaksPanel, TweakSection, TweakRow,
+  TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+  TweakText, TweakNumber, TweakColor, TweakButton,
+});
+
+  </script>
+  <!-- inlined from app.jsx (see that file for the editable source; kept in sync) -->
+  <script type="text/babel">
+/* ============================================================================
+   ARCHIVE NODE E-9  ·  APP
+   The interface is the AI. Calibration → conversation. Your choices are the
+   only words you are allowed to say. E-9 decides what to tell you next.
+   ========================================================================== */
+
+const { useState, useEffect, useRef, useCallback } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "speed": 1.25,
+  "glyphIntensity": 0.85,
+  "scanline": true,
+  "grid": true,
+  "archiveFont": "departure"
+}/*EDITMODE-END*/;
+
+/* ---- state memory : the room's white shifts with the path you take -------- */
+function warmthToBg(w) {
+  const t = Math.max(-3, Math.min(3, w)) / 3; // -1 (cold) .. +1 (warm)
+  const base = [10, 10, 15];
+  const cold = [8, 11, 22];   // fractionally bluer/colder
+  const warm = [17, 12, 13];  // fractionally warmer
+  const target = t < 0 ? cold : warm;
+  const k = Math.abs(t);
+  const mix = base.map((b, i) => Math.round(b + (target[i] - b) * k));
+  return `rgb(${mix[0]}, ${mix[1]}, ${mix[2]})`;
+}
+
+/* ---- progress readout : NODE: E-9 // DEPTH: 03 // ACCESS: PARTIAL --------- */
+function ProgressReadout({ depth, access }) {
+  const d = String(depth).padStart(2, "0");
+  return (
+    <div className="readout" aria-label="node status">
+      <span className="ro-key">NODE:</span>&nbsp;E-9
+      <span className="ro-sep">&nbsp;//&nbsp;</span>
+      <span className="ro-key">DEPTH:</span>&nbsp;
+      <AssembledText key={"d" + depth} text={d} cps={26} glyphIntensity={1} />
+      <span className="ro-sep">&nbsp;//&nbsp;</span>
+      <span className="ro-key">ACCESS:</span>&nbsp;
+      <AssembledText key={"a" + access} text={access} cps={26} glyphIntensity={1} />
+    </div>
+  );
+}
+
+/* ---- a single choice : plain text, purple border draws in on hover -------- */
+function Choice({ choice, index, disabled, confirmed, onPick }) {
+  const [hover, setHover] = useState(false);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setShown(true), 30 + index * 130);
+    return () => clearTimeout(id);
+  }, [index]);
+  return (
+    <button
+      type="button"
+      className={
+        "choice" +
+        (shown ? " is-in" : "") +
+        (confirmed ? " choice--confirmed" : "") +
+        (disabled && !confirmed ? " choice--dimmed" : "")
+      }
+      disabled={disabled}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={() => onPick(choice)}
+    >
+      <span className={"choice-bar" + (hover || confirmed ? " is-drawn" : "")}></span>
+      <span className="choice-text">{choice.text}</span>
+    </button>
+  );
+}
+
+/* ---- one exchange : narration → divider → archive → divider → choices ----- */
+function Passage({ node, glyphIntensity, speed, onChoose, onSpeaking }) {
+  const [stage, setStage] = useState(0); // 0 narr, 1 archive, 2 choices
+  const [picked, setPicked] = useState(null);
+
+  // E-9 (purple) is "speaking" only while the archive line is assembling
+  useEffect(() => {
+    onSpeaking && onSpeaking(stage === 1);
+  }, [stage]);
+  useEffect(() => () => { onSpeaking && onSpeaking(false); }, []);
+
+  useEffect(() => {
+    setStage(0);
+    setPicked(null);
+  }, [node.__id]);
+
+  const archiveText = (node.archive || "").split(" // ").join("\n");
+
+  const pick = (choice) => {
+    if (picked) return;
+    setPicked(choice);
+    // teal acknowledgement, then advance
+    setTimeout(() => onChoose(choice), 720);
+  };
+
+  return (
+    <div className="passage" key={node.__id}>
+      <AssembledText
+        key={node.__id + "-n"}
+        text={node.narration}
+        cps={48 * speed}
+        glyphIntensity={glyphIntensity}
+        className="narration"
+        onDone={() => setStage((s) => Math.max(s, 1))}
+      />
+
+      {stage >= 1 && <div className="divider divider--soft"></div>}
+
+      {stage >= 1 && (
+        <AssembledText
+          key={node.__id + "-a"}
+          text={archiveText}
+          cps={12.5 * speed}
+          halting={true}
+          glyphIntensity={glyphIntensity}
+          className="archive"
+          onDone={() => setStage((s) => Math.max(s, 2))}
+        />
+      )}
+
+      {stage >= 2 && <div className="divider divider--rule"></div>}
+
+      {stage >= 2 && (
+        <div className="choices">
+          {node.choices.map((c, i) => (
+            <Choice
+              key={i}
+              index={i}
+              choice={c}
+              disabled={!!picked}
+              confirmed={picked === c}
+              onPick={pick}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---- calibration boot : alien scripts cycle, then English resolves -------- */
+function Calibration({ speed, onComplete, onSpeaking }) {
+  const scripts = window.E9_CALIBRATION_SCRIPTS;
+  const [visible, setVisible] = useState(0); // how many alien lines shown
+  const [resolved, setResolved] = useState(false);
+  const [skipped, setSkipped] = useState(false);
+
+  useEffect(() => {
+    const timers = [];
+    const step = 620 / speed;
+    for (let i = 1; i <= scripts.length; i++) {
+      timers.push(setTimeout(() => setVisible(i), step * i));
+    }
+    timers.push(setTimeout(() => setResolved(true), step * scripts.length + 900 / speed));
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const finish = useCallback(() => onComplete && onComplete(), [onComplete]);
+  const [lineDone, setLineDone] = useState(false);
+
+  // E-9 is "speaking" while the resolved first line assembles
+  useEffect(() => {
+    onSpeaking && onSpeaking(resolved && !lineDone);
+  }, [resolved, lineDone]);
+  useEffect(() => () => { onSpeaking && onSpeaking(false); }, []);
+
+  const doSkip = () => {
+    if (skipped) return;
+    setSkipped(true);
+    setResolved(true);
+  };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === " " || e.key === "Enter") doSkip();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  return (
+    <div className="calibration" onClick={doSkip}>
+      <div className="calib-stack">
+        {!resolved &&
+          scripts.slice(0, visible).map((s, i) => (
+            <ScrambleLine key={i} seed={s} className="calib-line" />
+          ))}
+        {resolved && (
+          <AssembledText
+            key="firstline"
+            text={window.E9_FIRST_LINE}
+            cps={11 * speed}
+            halting={true}
+            glyphIntensity={0.95}
+            className="archive calib-resolved"
+            onDone={() => {
+              setLineDone(true);
+              setTimeout(finish, 1100 / speed);
+            }}
+          />
+        )}
+      </div>
+      {!resolved && <div className="calib-hint">— click to skip calibration —</div>}
+    </div>
+  );
+}
+
+/* ---- root ---------------------------------------------------------------- */
+function App() {
+  const saved = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("e9_state") || "null");
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  const [phase, setPhase] = useState(saved && saved.node ? "passage" : "calibration");
+  const [nodeId, setNodeId] = useState((saved && saved.node) || window.E9_START);
+  const [warmth, setWarmth] = useState((saved && saved.warmth) || 0);
+  const [stamp, setStamp] = useState(0); // forces Passage remount on revisit
+  const [speaking, setSpeaking] = useState(false); // drives the fixed orb
+
+  // ------- Tweaks (toggle from the toolbar) -------
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const speed = t.speed;
+  const glyphIntensity = t.glyphIntensity;
+  const scanline = t.scanline;
+  const grid = t.grid;
+  const archiveFont = t.archiveFont;
+
+  // apply state-memory white + archive font to the document
+  useEffect(() => {
+    document.documentElement.style.setProperty("--bg", warmthToBg(warmth));
+  }, [warmth]);
+  useEffect(() => {
+    document.documentElement.setAttribute("data-archive-font", archiveFont);
+  }, [archiveFont]);
+
+  // persist place so a refresh doesn't lose progress
+  useEffect(() => {
+    if (phase === "passage") {
+      localStorage.setItem("e9_state", JSON.stringify({ node: nodeId, warmth }));
+    }
+  }, [phase, nodeId, warmth]);
+
+  const node = { ...window.E9_STORY[nodeId], __id: nodeId + "#" + stamp };
+
+  const handleChoose = (choice) => {
+    if (choice.to === "__restart") {
+      localStorage.removeItem("e9_state");
+      setWarmth(0);
+      setNodeId(window.E9_START);
+      setStamp((s) => s + 1);
+      setPhase("calibration");
+      return;
+    }
+    setWarmth((w) => w + (choice.drift === "warm" ? 1 : choice.drift === "cold" ? -1 : 0));
+    setNodeId(choice.to);
+    setStamp((s) => s + 1);
+  };
+
+  return (
+    <React.Fragment>
+      <BackgroundLayers scanline={scanline} grid={grid} />
+      <ArchiveGlow active={speaking} />
+      <ProgressReadout depth={node.depth} access={node.access} />
+
+      <main className="stage">
+        <div className="column">
+          {phase === "calibration" ? (
+            <Calibration
+              speed={speed}
+              onComplete={() => setPhase("passage")}
+              onSpeaking={setSpeaking}
+            />
+          ) : (
+            <Passage
+              node={node}
+              speed={speed}
+              glyphIntensity={glyphIntensity}
+              onChoose={handleChoose}
+              onSpeaking={setSpeaking}
+            />
+          )}
+        </div>
+      </main>
+
+      <div className="sig" aria-hidden="true">ARCHIVE NODE E-9</div>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="E-9's cadence" />
+        <TweakSlider
+          label="Speech speed"
+          value={speed}
+          min={0.6}
+          max={2.2}
+          step={0.05}
+          onChange={(v) => setTweak("speed", v)}
+        />
+        <TweakSlider
+          label="Wrongness"
+          value={glyphIntensity}
+          min={0}
+          max={1}
+          step={0.05}
+          onChange={(v) => setTweak("glyphIntensity", v)}
+        />
+        <TweakRadio
+          label="Archive typeface"
+          value={archiveFont}
+          options={["departure", "sharetech"]}
+          onChange={(v) => setTweak("archiveFont", v)}
+        />
+        <TweakSection label="The room" />
+        <TweakToggle
+          label="Breathing grid"
+          value={grid}
+          onChange={(v) => setTweak("grid", v)}
+        />
+        <TweakToggle
+          label="Sensor sweep"
+          value={scanline}
+          onChange={(v) => setTweak("scanline", v)}
+        />
+        <TweakButton
+          label="Wipe memory + recalibrate"
+          onClick={() => {
+            localStorage.removeItem("e9_state");
+            setWarmth(0);
+            setNodeId(window.E9_START);
+            setStamp((s) => s + 1);
+            setPhase("calibration");
+          }}
+        />
+      </TweaksPanel>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+  </script>
+</body>
+</html>
