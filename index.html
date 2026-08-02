@@ -529,6 +529,23 @@
     html{ scroll-behavior:auto; }
     .reveal{ opacity:1; transform:none; }
   }
+
+  /* ============ MOBILE ============
+     Scoped entirely behind this max-width query, appended last so it can
+     only ever override earlier rules within this breakpoint -- none of it
+     touches how anything looks above 640px. Two confirmed bugs found by
+     testing at a true 375px layout width (not just a narrow desktop
+     window): the contact email overflowed the viewport because long
+     unbroken text has nowhere to wrap, and the hero mini-game's choice
+     buttons were only ~25px tall, well under the ~44px touch-target
+     minimum. */
+  @media(max-width:640px){
+    .contact-row a{ overflow-wrap:anywhere; }
+    .contact-row{ flex-wrap:wrap; }
+    .contact-row .ar{ margin-left:0; }
+
+    .hg-choice{ padding:12px 0; }
+  }
 </style>
 </head>
 <body>
@@ -937,6 +954,11 @@ window.ANALOG_SHADER = {
 
   const ghostGroup = new THREE.Group();
   scene.add(ghostGroup);
+  /* mobile only, matching the same 640px breakpoint used for the rest of
+     the site's mobile CSS -- smaller ghost, since it otherwise dominates a
+     narrow phone screen relative to how it reads on a wide desktop canvas */
+  const isMobileHero = window.matchMedia('(max-width:640px)').matches;
+  if (isMobileHero) ghostGroup.scale.setScalar(0.62);
 
   const ghostGeo = new THREE.SphereGeometry(2, 40, 40);
   const pos = ghostGeo.getAttribute('position').array;
@@ -1063,6 +1085,29 @@ window.ANALOG_SHADER = {
     moveTimer = setTimeout(() => { isMoving = false; }, 80);
     lastMouseUpdate = now;
   }, { passive: true });
+
+  // mobile only: touch takes the place of mousemove -- the ghost moves to
+  // wherever the visitor touches within the hero section. Scoped to the
+  // hero element itself (not window, unlike mousemove above) since touch
+  // has no persistent "current position" the way a mouse cursor does --
+  // tracking presses outside the section wouldn't mean anything.
+  if (isMobileHero) {
+    const heroEl = host.parentElement;
+    const updateFromTouch = (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      const r = host.getBoundingClientRect();
+      prevMouse.copy(mouse);
+      mouse.x = ((t.clientX - r.left) / Math.max(1, r.width)) * 2 - 1;
+      mouse.y = -((t.clientY - r.top) / Math.max(1, r.height)) * 2 + 1;
+      isMoving = true;
+      hasMouseMoved = true;
+      clearTimeout(moveTimer);
+      moveTimer = setTimeout(() => { isMoving = false; }, 80);
+    };
+    heroEl.addEventListener('touchstart', updateFromTouch, { passive: true });
+    heroEl.addEventListener('touchmove', updateFromTouch, { passive: true });
+  }
 
   // resize, keyed to the hero element (not the window)
   function syncSize() {
@@ -1486,7 +1531,7 @@ window.ANALOG_SHADER = {
   function size() {
     /* bail if the viewport isn't measurable yet -- sizing to 0 here would
        leave the canvas permanently dead, so we retry instead */
-    const w = window.innerWidth, h = window.innerHeight;
+    const w = document.documentElement.clientWidth, h = window.innerHeight;
     if (w < 2 || h < 2) return false;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
     W = w; H = h;
