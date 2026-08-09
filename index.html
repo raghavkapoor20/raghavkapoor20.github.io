@@ -830,11 +830,36 @@ window.ANALOG_SHADER = {
     uAnalogVignette: { value: 1.0 },
     uAnalogJitter: { value: 0.3 },
     uAnalogIntensity: { value: 0.5 },
+    /* 1.0 is an exact no-op. ShaderPass clones uniforms per instance, so the
+       companion ghost keeps this default while the hero raises it. */
+    uSaturation: { value: 1.0 },
+    /* blue channel's split distance as a fraction of red's. 0.8 == the
+       value this was hard-coded to, so leaving it alone changes nothing. */
+    uBlueSplit: { value: 0.8 },
+    /* gain on the displaced blue sample. 1.0 == unchanged. The ghost is
+       amber (R high, B low), so the cyan fringe has little blue to work
+       with and stays far weaker than the magenta one; this feeds it. */
+    /* extra saturation applied ONLY where blue already exceeds red, i.e. the
+       cyan fringes. A global blue gain was tried first and was wrong: it
+       lifted the amber halo too, pushing the magenta:cyan pixel ratio from
+       12:1 to 69:1. 0.0 == no-op, so the companion ghost is unaffected. */
+    uCoolBoost: { value: 0.0 },
+    /* mirror of uCoolBoost: pulls saturation DOWN where red exceeds blue,
+       so the dominant magenta fringe can be tamed without touching the
+       cyan one. 0.0 == no-op. */
+    uWarmDamp: { value: 0.0 },
+    /* how fast the split's offset varies down the frame. 20.0 == the value
+       this was hard-coded to. The companion ghost fills 22% of its canvas
+       height so the phase swings 4.4 rad across it and the fringe ripples
+       WITHIN the body; the hero fills only 13%, so at the same frequency it
+       swings just 2.6 rad and the fringe slides as one detached layer. */
+    uBleedFreq: { value: 20.0 },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader: `
     uniform sampler2D tDiffuse; uniform float uTime;
     uniform float uAnalogGrain, uAnalogBleeding, uAnalogVSync, uAnalogScanlines, uAnalogVignette, uAnalogJitter, uAnalogIntensity;
+    uniform float uSaturation, uBlueSplit, uCoolBoost, uWarmDamp, uBleedFreq;
     varying vec2 vUv;
     float random(vec2 st){ return fract(sin(dot(st.xy, vec2(12.9898,78.233)))*43758.5453123); }
     float gaussian(float z,float u,float o){ return (1.0/(o*sqrt(2.0*3.1415)))*exp(-(((z-u)*(z-u))/(2.0*(o*o)))); }
@@ -853,9 +878,9 @@ window.ANALOG_SHADER = {
       vec4 color = texture2D(tDiffuse, j);
       if(uAnalogBleeding>0.01){
         float bleed = 0.012*uAnalogBleeding*uAnalogIntensity;
-        float phase = time*1.5+uv.y*20.0;
+        float phase = time*1.5+uv.y*uBleedFreq;
         vec2 rOff = vec2(sin(phase)*bleed, 0.0);
-        vec2 bOff = vec2(-sin(phase*1.1)*bleed*0.8, 0.0);
+        vec2 bOff = vec2(-sin(phase*1.1)*bleed*uBlueSplit, 0.0);
         float r = texture2D(tDiffuse, j+rOff).r;
         float g = texture2D(tDiffuse, j).g;
         float b = texture2D(tDiffuse, j+bOff).b;
@@ -875,6 +900,30 @@ window.ANALOG_SHADER = {
       if(uAnalogVignette>0.01){
         vec2 vu = (uv-0.5)*2.0;
         color.rgb *= 1.0 - dot(vu,vu)*0.3*uAnalogVignette*uAnalogIntensity;
+      }
+      if(uWarmDamp > 0.0){
+        /* Keyed on GREEN DEFICIT, not r-b. The magenta fringe has r ~= b, so
+           an r-b test scored it 0.07 -- the same as the amber glow we must
+           keep -- and barely damped it. Measured (r-g)/r separates them
+           cleanly: glow 0.41 and body 0.06, vs fringes 0.88-1.00. The
+           smoothstep floor sits above the glow so it is left alone. */
+        float greenDeficit = (color.r - color.g) / max(color.r, 0.001);
+        float warmth = smoothstep(0.60, 0.92, greenDeficit);
+        float wl = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+        vec3 damped = mix(vec3(wl), color.rgb, 1.0 - uWarmDamp);
+        color.rgb = mix(color.rgb, damped, warmth);
+      }
+      if(uCoolBoost > 0.0){
+        float coolness = clamp((color.b - color.r) * 4.0, 0.0, 1.0);
+        float cl = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+        vec3 boosted = clamp(mix(vec3(cl), color.rgb, 1.0 + uCoolBoost), 0.0, 1.0);
+        color.rgb = mix(color.rgb, boosted, coolness);
+      }
+      /* last, so it amplifies the colour fringes the channel split just
+         created rather than the flat blown-out body */
+      if(uSaturation != 1.0){
+        float l = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+        color.rgb = clamp(mix(vec3(l), color.rgb, uSaturation), 0.0, 1.0);
       }
       gl_FragColor = color;
     }`,
@@ -924,6 +973,29 @@ window.ANALOG_SHADER = {
   const analogShader = window.ANALOG_SHADER;
 
   const analogPass = new ShaderPass(analogShader);
+  analogPass.uniforms.uAnalogGrain.value     = 0.0;
+  /* the shader offsets in UV, so the same value gives a pixel split
+     proportional to canvas width -- bio's 5.0 on its small canvas can't be
+     copied verbatim. Solved so the split is the same fraction of the
+     ghost's on-screen size as the companion's (~10%). */
+  /* solved to match the companion ghost: its split is 10.3% of its body
+     width, the hero was at 26.7% -- which is why it read as a separate
+     layer floating off the top rather than fringing on the body itself */
+  analogPass.uniforms.uAnalogBleeding.value  = 1.05;
+  analogPass.uniforms.uAnalogVSync.value     = 0.5;
+  analogPass.uniforms.uAnalogScanlines.value = 0.35;
+  analogPass.uniforms.uAnalogVignette.value  = 0.5;
+  analogPass.uniforms.uAnalogJitter.value    = 0.3;
+  analogPass.uniforms.uAnalogIntensity.value = 0.5;
+  analogPass.uniforms.uSaturation.value      = 1.15;
+  /* Same as the companion ghost. At 0.18 blue rode along with green, so the
+     red-displaced side kept its blue and read as warm white instead of pink.
+     Throwing blue the opposite way is what separates the fringe into a warm
+     (pink) edge and a cool (cyan) one. */
+  analogPass.uniforms.uBlueSplit.value       = 0.8;
+  analogPass.uniforms.uCoolBoost.value       = 1.0;   // mild lift on the cyan side only
+  analogPass.uniforms.uWarmDamp.value        = 0.0;   // off: it was desaturating the pink fringe itself
+  analogPass.uniforms.uBleedFreq.value       = 34.0;  // same phase swing across the body as the companion's
   composer.addPass(analogPass);
   composer.addPass(new OutputPass());
 
@@ -932,8 +1004,8 @@ window.ANALOG_SHADER = {
   const CREAM = 0xf9efea;
 
   const params = {
-    bodyColor: 0x2a211d,
-    ghostOpacity: 0.96,
+    bodyColor: 0x4a3226,
+    ghostOpacity: 1.0,
     emissiveIntensity: 6.8,
     followSpeed: 0.075,
     wobbleAmount: 0.3,
@@ -972,36 +1044,38 @@ window.ANALOG_SHADER = {
   ghostGeo.computeVertexNormals();
 
   const ghostMat = new THREE.MeshStandardMaterial({
-    color: params.bodyColor, transparent: true, opacity: params.ghostOpacity,
+    color: params.bodyColor, transparent: false, opacity: params.ghostOpacity,
     emissive: AMBER, emissiveIntensity: params.emissiveIntensity,
-    roughness: 0.05, metalness: 0.0, side: THREE.DoubleSide, alphaTest: 0.1,
+    roughness: 0.1, metalness: 0.0, side: THREE.DoubleSide, alphaTest: 0.1,
   });
   const ghostBody = new THREE.Mesh(ghostGeo, ghostMat);
   ghostGroup.add(ghostBody);
+
 
   const rim1 = new THREE.DirectionalLight(0xc99a6e, 2.2);
   rim1.position.set(-8, 6, -4); scene.add(rim1);
   const rim2 = new THREE.DirectionalLight(0x8a6a4a, 1.7);
   rim2.position.set(8, -4, -6); scene.add(rim2);
 
+  const eyeScene = new THREE.Scene();
+  const eyeGroup = new THREE.Group();
+  eyeScene.add(eyeGroup);
   function makeEyes() {
-    const group = new THREE.Group(); ghostGroup.add(group);
+    const group = eyeGroup;
     const socketGeo = new THREE.SphereGeometry(0.52, 16, 16);
     const socketMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    [-0.7, 0.7].forEach((x) => {
-      const s = new THREE.Mesh(socketGeo, socketMat);
-      s.position.set(x, 0.6, 1.9); s.scale.set(1.1, 1.0, 0.6);
-      group.add(s);
-    });
-    const eyeGeo = new THREE.SphereGeometry(0.3, 12, 12);
-    const outerGeo = new THREE.SphereGeometry(0.525, 12, 12);
+    const eyeGeo = new THREE.SphereGeometry(0.27, 12, 12);
+    const outerGeo = new THREE.SphereGeometry(0.44, 12, 12);
     const eyes = [];
     [-0.7, 0.7].forEach((x) => {
-      const em = new THREE.MeshBasicMaterial({ color: CREAM, transparent: true, opacity: 0 });
-      const eye = new THREE.Mesh(eyeGeo, em); eye.position.set(x, 0.6, 2.0); group.add(eye);
-      const om = new THREE.MeshBasicMaterial({ color: CREAM, transparent: true, opacity: 0, side: THREE.BackSide });
-      const outer = new THREE.Mesh(outerGeo, om); outer.position.set(x, 0.6, 1.95); group.add(outer);
-      eyes.push({ em, om });
+      const s = new THREE.Mesh(socketGeo, socketMat);
+      s.position.set(x, 0.6, 2.10); s.scale.set(1.1, 1.0, 0.6);
+      group.add(s);
+      const em = new THREE.MeshBasicMaterial({ color: CREAM, transparent: true, opacity: 0.9 });
+      const eye = new THREE.Mesh(eyeGeo, em); eye.position.set(x, 0.6, 2.22); group.add(eye);
+      const om = new THREE.MeshBasicMaterial({ color: CREAM, transparent: true, opacity: 0.32, side: THREE.BackSide });
+      const outer = new THREE.Mesh(outerGeo, om); outer.position.set(x, 0.6, 2.16); group.add(outer);
+      eyes.push({ em, om, eye, outer });
     });
     return eyes;
   }
@@ -1131,6 +1205,8 @@ window.ANALOG_SHADER = {
 
   let time = 0, lastFrame = 0, currentMovement = 0;
   let started = false;
+  // blink: seconds until the next one, and how much of the current one is left
+  let blinkT = 2 + Math.random() * 4, blinking = 0;
 
   function firstRender() {
     for (let i = 0; i < 3; i++) composer.render();
@@ -1167,16 +1243,29 @@ window.ANALOG_SHADER = {
     ghostGroup.position.x += (targetX - ghostGroup.position.x) * params.followSpeed;
     ghostGroup.position.y += (targetY - ghostGroup.position.y) * params.followSpeed;
     ghostGroup.position.z = Math.sin(time * 0.6) * 0.6;
+
     ghostGroup.rotation.z = Math.sin(time * 0.7) * 0.05 * params.wobbleAmount;
     ghostGroup.rotation.y = Math.cos(time * 0.5) * 0.08 * params.wobbleAmount;
 
     const moveDelta = ghostGroup.position.distanceTo(prev);
     currentMovement += (moveDelta - currentMovement) * 0.15;
 
-    const eyeTarget = Math.min(1, currentMovement * 40 + (isMoving ? 0.35 : 0));
-    eyes.forEach(({ em, om }) => {
-      em.opacity += (eyeTarget * 0.9 - em.opacity) * 0.2;
-      om.opacity += (eyeTarget * 0.35 - om.opacity) * 0.2;
+    /* blink -- squashing the eye meshes vertically rather than fading them,
+       so the dark socket behind stays put and it reads as a lid closing */
+    blinkT -= dt / 1000;
+    if (blinkT <= 0) { blinking = 0.15; blinkT = 3 + Math.random() * 5; }
+    if (blinking > 0) blinking = Math.max(0, blinking - dt / 1000);
+    // 1 open -> ~0.08 shut -> 1 open again, over the blink's duration
+    const lid = blinking > 0
+      ? Math.max(0.08, 1 - Math.sin((1 - blinking / 0.15) * Math.PI))
+      : 1;
+
+    const eyePulse = 0.85 + Math.sin(time * 1.3) * 0.05;
+    eyes.forEach(({ em, om, eye, outer }) => {
+      em.opacity = eyePulse;
+      om.opacity = eyePulse * 0.36;
+      eye.scale.y = lid;
+      outer.scale.y = lid;
     });
 
     if (isMoving && Math.random() < 0.6) spawnParticle();
@@ -1199,7 +1288,15 @@ window.ANALOG_SHADER = {
       f.material.opacity = 0.55 + Math.sin(time * 2 + u.phase) * 0.3;
     });
 
+    eyeGroup.position.copy(ghostGroup.position);
+    eyeGroup.rotation.copy(ghostGroup.rotation);
+    eyeGroup.scale.copy(ghostGroup.scale);
+
     composer.render();
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    renderer.render(eyeScene, camera);
+    renderer.autoClear = true;
   }
   requestAnimationFrame(animate);
 })();
@@ -1224,6 +1321,8 @@ window.ANALOG_SHADER = {
   const BASE_SCALE = 1.7; // deliberately not fully compensated for the wider fov -- rendering the ghost a bit smaller on screen is what actually buys real pixel margin for the bloom to fade into
   let visible = false, started = false;
   let time = 0, lastFrame = 0;
+  // own blink timer, independent of the hero's so they never blink in unison
+  let blinkT = 2 + Math.random() * 4, blinking = 0;
   /* tracked relative to the ghost's own on-screen position, not the
      viewport centre -- it sits far off to the right, so viewport-relative
      coords would make it look the wrong way for most of the page */
@@ -1414,7 +1513,7 @@ window.ANALOG_SHADER = {
       shell.position.set(x, 0.6, 2.16);
       eyeGroup.add(shell);
 
-      eyes.push({ em, om });
+      eyes.push({ em, om, iris, shell });
     });
 
     /* a few drifting fireflies around the companion */
@@ -1481,10 +1580,20 @@ window.ANALOG_SHADER = {
 
     analogPass.uniforms.uTime.value = time;
 
+    /* blink -- same approach as the hero ghost */
+    blinkT -= dt / 1000;
+    if (blinkT <= 0) { blinking = 0.15; blinkT = 3 + Math.random() * 5; }
+    if (blinking > 0) blinking = Math.max(0, blinking - dt / 1000);
+    const lid = blinking > 0
+      ? Math.max(0.08, 1 - Math.sin((1 - blinking / 0.15) * Math.PI))
+      : 1;
+
     const eyePulse = 0.85 + Math.sin(time * 1.3) * 0.05;
     eyes.forEach((e) => {
       e.em.opacity = eyePulse;
       e.om.opacity = eyePulse * 0.36;
+      e.iris.scale.y = lid;
+      e.shell.scale.y = lid;
     });
     glow.material.opacity = 0.85 + Math.sin(time * 0.9) * 0.1;
 
